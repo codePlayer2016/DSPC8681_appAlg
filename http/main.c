@@ -50,13 +50,19 @@
 /* Platform utilities include */
 #include "ti/platform/platform.h"
 
+//add the TI's interrupt component.   add by LHS
+#include <ti/sysbios/family/c66/tci66xx/CpIntc.h>
+#include <ti/sysbios/hal/Hwi.h>
+
 /* Resource manager for QMSS, PA, CPPI */
 #include "ti/platform/resource_mgr.h"
 
 #include "http.h"
 #include "DPMMain.h"
 
-#define BOOT_UART_BAUDRATE                 115200
+extern Semaphore_Handle gRecvSemaphore;
+extern Semaphore_Handle gSendSemaphore;
+
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
 
@@ -166,15 +172,17 @@ char *EVMStaticIP = "192.168.30.100"; //    "   IP     "   for EVM
 char *LocalIPMask = "255.255.255.0"; // Mask for DHCP Server option
 char *GatewayIP = "192.168.30.100"; // Not used when using DHCP
 char *DomainName = "demo.net"; // Not used when using DHCP
-char *HostName    = "tidsp";
-char *DNSServer   = "0.0.0.0";
+char *HostName = "tidsp";
+char *DNSServer = "0.0.0.0";
 
 // Simulator EMAC Switch does not handle ALE_LEARN mode, so please configure the
 // MAC address of the PC where you want to launch the webpages and initiate PING to NDK */
 
-Uint8 clientMACAddress [6] = {0x00, 0x15, 0xE9, 0x85, 0x8A, 0x0A}; /* MAC address for my PC */
+Uint8 clientMACAddress[6] =
+{ 0x00, 0x15, 0xE9, 0x85, 0x8A, 0x0A }; /* MAC address for my PC */
 
-UINT8 DHCP_OPTIONS[] = { DHCPOPT_SERVER_IDENTIFIER, DHCPOPT_ROUTER };
+UINT8 DHCP_OPTIONS[] =
+{ DHCPOPT_SERVER_IDENTIFIER, DHCPOPT_ROUTER };
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //FILE *fp_info = NULL;
 
@@ -193,35 +201,14 @@ void write_uart(char* msg)
 		platform_uart_write(msg[i]);
 	}
 }
-#if 0
+#if 1
 /////////////////////////////////////////////////////////////////////////////////////////////
 static void isrHandler(void* handle)
 {
 	CpIntc_disableHostInt(0, 3);
-	//write_uart("get the interrupt from the host\n\r");
-	DEVICE_REG32_W(PCIE_LEGACY_A_IRQ_STATUS, 0x1);
-	DEVICE_REG32_W(PCIE_IRQ_EOI, 0x0);
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 
-	if ((DEVICE_REG32_R(OUT_REG) == 6) && (DEVICE_REG32_R(MAGIC_ADDR) == 2))
-	{ // TODO:the PC read over so the DSP change the outBufferFlag in the DSP
-	  //write_uart("PC R---> DSP W\n\r");
-		DEVICE_REG32_W(OUT_REG, 0);
-	}
-	else
-	{
-
-	}
-	if ((DEVICE_REG32_R(IN_REG) == 0) && (DEVICE_REG32_R(MAGIC_ADDR) == 1))
-	{ // TODO:the PC write over so the DSP change the inBufferFlag in the DSP.
-	  //write_uart("PC W---> DSP R\n\r");
-		DEVICE_REG32_W(IN_REG, 1);
-		Semaphore_post(g_readSemaphore);
-	}
-//	else
-	{
-
-	}
+	Semaphore_post(gRecvSemaphore);
 	CpIntc_enableHostInt(0, 3);
 }
 #endif
@@ -347,6 +334,10 @@ int StackTest()
 
 	int rc;
 	int i;
+
+	int EventID_intc;
+	Hwi_Params HwiParam_intc;
+
 	HANDLE hCfg;
 //	CI_SERVICE_TELNET telnet;
 //	CI_SERVICE_HTTP http;
@@ -410,7 +401,48 @@ int StackTest()
 	{
 		platform_write("PA successfully initialized \n");
 	}
+///////////////////////////////////////////////////////////////
+	//add the TI's interrupt component.   add by LHS
+	//Add the interrupt componet.
+	/*
+	 id -- Cp_Intc number
+	 sysInt -- system interrupt number
+	 hostInt -- host interrupt number
+	 */
+	CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTA, 3);
+	/*
+	 sysInt -- system interrupt number
+	 fxn -- function
+	 arg -- argument to function
+	 unmask -- bool to unmask interrupt
+	 */
+	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
+			TRUE);
+	/*
+	 id -- Cp_Intc number
+	 hostInt -- host interrupt number
+	 */
+	CpIntc_enableHostInt(0, 3);
+	//hostInt -- host interrupt number
+	EventID_intc = CpIntc_getEventId(3);
+	//HwiParam_intc
+	Hwi_Params_init(&HwiParam_intc);
+	HwiParam_intc.arg = 3;
+	HwiParam_intc.eventId = EventID_intc; //eventId
+	HwiParam_intc.enableInt = 1;
+	/*
+	 intNum -- interrupt number
+	 hwiFxn -- pointer to ISR function
+	 params -- per-instance config params, or NULL to select default values (target-domain only)
+	 eb -- active error-handling block, or NULL to select default policy (target-domain only)
+	 */
+	Hwi_create(4, &CpIntc_dispatch, &HwiParam_intc, NULL);
 
+	//
+	// THIS MUST BE THE ABSOLUTE FIRST THING DONE IN AN APPLICATION before
+	//  using the stack!!
+	//
+////////////////////////////////////////////////////////////////
 	//
 	// THIS MUST BE THE ABSOLUTE FIRST THING DONE IN AN APPLICATION before
 	//  using the stack!!
@@ -490,8 +522,8 @@ int StackTest()
 		// Manually add the DNS server when specified
 		IPTmp = inet_addr(DNSServer);
 		if (IPTmp)
-			CfgAddEntry(hCfg, CFGTAG_SYSINFO, CFGITEM_DHCP_DOMAINNAMESERVER, 0,
-					sizeof(IPTmp), (UINT8 *) &IPTmp, 0);
+		CfgAddEntry(hCfg, CFGTAG_SYSINFO, CFGITEM_DHCP_DOMAINNAMESERVER, 0,
+				sizeof(IPTmp), (UINT8 *) &IPTmp, 0);
 #endif
 	}
 #if 0
@@ -541,7 +573,7 @@ int StackTest()
 		// The username and password are just "username" and "password"
 		strcpy(CA.Username, "username");
 		strcpy(CA.Password, "password");
-		CA.Flags = CFG_ACCTFLG_CH1; // Make a member of realm 1
+		CA.Flags = CFG_ACCTFLG_CH1;// Make a member of realm 1
 		rc = CfgAddEntry(hCfg, CFGTAG_ACCT, CFGITEM_ACCT_REALM, 0,
 				sizeof(CI_ACCT), (UINT8 *) &CA, 0);
 	}

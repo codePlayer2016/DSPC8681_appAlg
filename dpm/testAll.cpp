@@ -27,7 +27,10 @@ extern "C"
 #endif
 
 #include "ti/platform/platform.h"
+#include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/BIOS.h>
 extern void write_uart(char* msg);
+extern Semaphore_Handle gRecvSemaphore;
 
 #ifdef __cplusplus
 }
@@ -85,6 +88,12 @@ int testlib(char *bmpfilebuf)
 	IplImage *normImage = cvCreateImage(
 			cvSize(origImage->width, origImage->height), origImage->depth,
 			origImage->nChannels);
+
+////////////////////////////////////////////////////
+	write_uart("dsp wait for being triggerred to start dpm\r\n");
+	Semaphore_pend(gRecvSemaphore,BIOS_WAIT_FOREVER);
+
+////////////////////////////////////////////////////
 
 	CvSize filterSize = model.getMaxSizeOfFilters();
 	HOGPyramid pyramid = HOGPyramid(normImage->width, normImage->height, padx,

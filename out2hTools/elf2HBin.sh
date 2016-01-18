@@ -3,7 +3,7 @@ export TARGET=6678
 export ENDIAN=little
 
 # project name.
-DSPPRJ=DSPC8681_DPMV0.93
+DSPPRJ=DSPC8681_framework
 
 # input file name.
 SRCOUTFILE=${DSPPRJ}.out

@@ -1,10 +1,10 @@
 #! /bin/bash
 
 # workspace.
-DSPWORKSPACE=/root/dspWorkspace
+DSPWORKSPACE=/home/hawke/gitDSPC8681
 
 # DSP project name.
-DSPPRJ=DSPC8681_DPMV0.93
+DSPPRJ=DSPC8681_framework
 
 # Linux project name.
 LINUX_PROJECT_NAME=tools4Crc
