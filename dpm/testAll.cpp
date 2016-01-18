@@ -21,6 +21,14 @@
 #include "DPMDetector.h"
 #include "motorcyclist.h"
 
+#define PCIE_EP_IRQ_SET		 (0x21800064)
+//#define TRUE (1)
+#define EP_IRQ_CLR                   0x68
+#define EP_IRQ_STATUS                0x6C
+#define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
+#define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
+
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -148,12 +156,11 @@ int testlib(char *bmpfilebuf)
 
 	sprintf(debugInfor,"timeDetectFast=%d",timeDetectFast);
 	write_uart(debugInfor);
-	//foutDetectFast << std::endl;
-	//std::cout << std::endl;
-	//foutFastTime << std::endl;
-
-	//foutDetectFast.close();
-	//foutFastTime.close();
+//////////////////////////////////////////////////////////////////////////
+	// trigger the interrupt to the pc ,
+	DEVICE_REG32_W(PCIE_EP_IRQ_SET,0x1);
+	write_uart("trigger the host interrupt\r\n");
+//////////////////////////////////////////////////////////////////////////
 
 	cvReleaseImage(&normImage);
 	cvReleaseImage(&origImage);
