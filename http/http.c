@@ -7,11 +7,18 @@
 #include <ti/ndk/inc/socket.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/family/c66/tci66xx/CpIntc.h>
 #include "http.h"
 #include "LinkLayer.h"
 
 #define MAGIC_ADDR     0x87fffc
+//add cyx
 #define PCIE_EP_IRQ_SET		           0x21800064
+#define PCIE_EP_IRQ_CLR	               0x21800068
+#define PCIE_LEGACY_A_IRQ_STATUS      0x21800184
+#define PCIE_LEGACY_A_IRQ_ENABLE_SET  0x21800188
+#define PCIE_IRQ_EOI                  50
+
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
 #define C6678_PCIEDATA_BASE (0x60000000U)
@@ -156,6 +163,16 @@ void http_get()
 	write_uart("http_get\n\r");
 
 #if 1
+	//add by cyx
+	DEVICE_REG32_W(PCIE_LEGACY_A_IRQ_ENABLE_SET,0x1);
+	//DEVICE_REG32_W(pRegisterTable+PCIE_IRQ_EOI,0x1);
+	CpIntc_enableHostInt(0, 3);
+	*((uint32_t *)(PCIE_EP_IRQ_SET))=0x1;
+	write_uart("cyx send interrupt from dsp to pc INTA singal\n\r");
+	//*((uint32_t *)(PCIE_EP_IRQ_CLR))=0x1;
+	//write_uart("cyx clear interrupt in dsp\n\r");
+
+
 	while (1 == g_DownloadFlags)
 	{
 		// polling PC to write the url.

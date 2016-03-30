@@ -69,12 +69,15 @@ extern Semaphore_Handle gSendSemaphore;
 #define DDR_TEST_START                 0x80000000
 #define DDR_TEST_END                   0x80400000
 #define BOOT_UART_BAUDRATE                 115200
+
 #define PCIEXpress_Legacy_INTA                 50
+/*
 #define PCIE_IRQ_EOI                   0x21800050
 #define PCIE_EP_IRQ_SET		           0x21800064
 #define PCIE_LEGACY_A_IRQ_STATUS       0x21800184
 #define PCIE_LEGACY_A_IRQ_RAW          0x21800180
 #define PCIE_LEGACY_A_IRQ_SetEnable       0x21800188
+*/
 
 #ifdef _EVMC6678L_
 #define MAGIC_ADDR     (0x87fffc)
@@ -207,6 +210,8 @@ static void isrHandler(void* handle)
 {
 	CpIntc_disableHostInt(0, 3);
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
+	//modify by cyx
+	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
 
 	Semaphore_post(gRecvSemaphore);
 	CpIntc_enableHostInt(0, 3);
@@ -409,7 +414,10 @@ int StackTest()
 	 sysInt -- system interrupt number
 	 hostInt -- host interrupt number
 	 */
+
 	CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTA, 3);
+	//modify by cyx
+	//CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTB, 3);
 	/*
 	 sysInt -- system interrupt number
 	 fxn -- function
@@ -418,6 +426,9 @@ int StackTest()
 	 */
 	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
 			TRUE);
+	//modify by cyx
+	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
+			//	TRUE);
 	/*
 	 id -- Cp_Intc number
 	 hostInt -- host interrupt number
