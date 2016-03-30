@@ -71,6 +71,7 @@ extern Semaphore_Handle gSendSemaphore;
 #define BOOT_UART_BAUDRATE                 115200
 
 #define PCIEXpress_Legacy_INTA                 50
+#define PCIEXpress_Legacy_INTB                 50
 /*
 #define PCIE_IRQ_EOI                   0x21800050
 #define PCIE_EP_IRQ_SET		           0x21800064
@@ -209,9 +210,9 @@ void write_uart(char* msg)
 static void isrHandler(void* handle)
 {
 	CpIntc_disableHostInt(0, 3);
-	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
+	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 	//modify by cyx
-	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
+	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
 
 	Semaphore_post(gRecvSemaphore);
 	CpIntc_enableHostInt(0, 3);
@@ -415,20 +416,20 @@ int StackTest()
 	 hostInt -- host interrupt number
 	 */
 
-	CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTA, 3);
+	//CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTA, 3);
 	//modify by cyx
-	//CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTB, 3);
+	CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTB, 3);
 	/*
 	 sysInt -- system interrupt number
 	 fxn -- function
 	 arg -- argument to function
 	 unmask -- bool to unmask interrupt
 	 */
-	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
-			TRUE);
+	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
+		//	TRUE);
 	//modify by cyx
-	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
-			//	TRUE);
+	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
+				TRUE);
 	/*
 	 id -- Cp_Intc number
 	 hostInt -- host interrupt number
