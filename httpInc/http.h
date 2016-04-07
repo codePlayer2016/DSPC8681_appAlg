@@ -55,7 +55,17 @@ typedef struct pic_status
 	int flag_downloadPicSuccessful;
 	int n_error_code;
 } pic_status,*p_pic_status;
-
+typedef struct __tagPicInfor
+{
+	uint8_t *picAddr[100];
+	uint32_t picLength[100];
+	uint8_t picUrls[100][102];
+	uint8_t picNums;
+} PicInfor;
+//typedef struct __tagPicOutInfor
+//{
+//	unsigned char g_outBuffer[0x00400000];
+//} PicOutInfor;
 int http_parseURL(char *p_url,http_downloadInfo *p_info);
 int http_sendRequest(SOCKET *socket_sendHandle,char *p_urlInput,http_downloadInfo *p_info);
 

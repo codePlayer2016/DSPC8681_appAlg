@@ -22,6 +22,7 @@
 #include "jpegdec_ti.h"
 #include "jpegdec.h"
 
+
 /* CSL and DMAN3 header files                                                 */
 #include <ti/sysbios/family/c66/Cache.h>
 #include <ti/sysbios/knl/Semaphore.h>
@@ -48,6 +49,7 @@ char debugInfor[100];
 
 extern Semaphore_Handle g_readSemaphore;
 extern unsigned char g_outBuffer[0x00400000]; //4M
+//extern PicOutInfor gPicOutInfor[40];
 // modify by LHS. the inputData is the src picture.
 //XDAS_Int8 inputData[INPUT_BUFFER_SIZE];
 int8_t *inputSrc=NULL;

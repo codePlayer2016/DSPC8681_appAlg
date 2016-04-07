@@ -48,21 +48,16 @@
 #define DSP_WT_OVER 	(0x550000aaU)
 #define DSP_WT_BUSY		(0x55555555U)
 
-typedef struct __tagPicInfor
-{
-	uint8_t *picAddr[100];
-	uint32_t picLength[100];
-	uint8_t picUrls[100][102];
-	uint8_t picNums;
-} PicInfor;
 
 extern Semaphore_Handle g_readSemaphore;
 extern Semaphore_Handle g_writeSemaphore;
+
+extern Semaphore_Handle timeoutSemaphore;
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
 extern unsigned char g_outBuffer[0x00400000]; //4M
 //extern unsigned char g_outBuffer[0x400000];//4M
 extern unsigned char g_inBuffer[0x00100000]; //1M value.
-
+//PicOutInfor gPicOutInfor[40];
 // all picture infor.
 PicInfor gPictureInfor;
 
@@ -137,7 +132,7 @@ void http_get()
 	unsigned char *pPicBuffer;
 	char *pContentLength = NULL;
 	int nContentLength = 0;
-	int retRecv=0;
+	int retRecv = 0;
 
 	int i = 1;
 
@@ -166,14 +161,14 @@ void http_get()
 
 #if 1
 	//add by cyx
-	DEVICE_REG32_W(PCIE_LEGACY_B_IRQ_ENABLE_SET,0x1);
+	//DEVICE_REG32_W(PCIE_LEGACY_B_IRQ_ENABLE_SET,0x1);
 	//DEVICE_REG32_W(pRegisterTable+PCIE_IRQ_EOI,0x1);
-	CpIntc_enableHostInt(0, 3);
-	*((uint32_t *)(PCIE_EP_IRQ_SET))=0x1;
-	write_uart("cyx send interrupt from dsp to pc INTA singal\n\r");
+	//CpIntc_enableHostInt(0, 3);
+	//dsp send interrupt to pc
+	*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
+	write_uart("cyx send interrupt from dsp to pc INT singal\n\r");
 	//*((uint32_t *)(PCIE_EP_IRQ_CLR))=0x1;
 	//write_uart("cyx clear interrupt in dsp\n\r");
-
 
 	while (1 == g_DownloadFlags)
 	{
@@ -201,6 +196,17 @@ void http_get()
 					pRegisterTable->readStatus, retVal, urlItemNum);
 			write_uart(debugBuf);
 			urlItemNum = 0;
+			//timeout
+			Semaphore_pend(timeoutSemaphore, BIOS_WAIT_FOREVER);
+			urlItemNum = DEVICE_REG32_R(&(pRegisterTable->DSP_urlNumsReg));
+			sprintf(debugBuf, "urlItemNum=%d\r\n",
+					pRegisterTable->DSP_urlNumsReg);
+			write_uart(debugBuf);
+			pUrlAddr = pInbuffer;
+			pPicDestAddr = pOutbuffer;
+			// polling the PC can be written to.
+			retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_INIT,
+					0x07ffffff);
 		}
 
 		// polling PC can be writed to.
@@ -379,7 +385,9 @@ void http_get()
 					mmCopy(pPicDestAddr, (char *) &nContentLength, sizeof(int));
 					pPicBuffer = (((uint8_t *) (pPicDestAddr)) + sizeof(int));
 					recvHttpGetLength = nContentLength + recvHttpHeadLength;
-					sprintf(debugBuf, "content-length=%d,pPicBuffer address:%x\r\n", nContentLength,pPicBuffer);
+					sprintf(debugBuf,
+							"content-length=%d,pPicBuffer address:%x\r\n",
+							nContentLength, pPicBuffer);
 					write_uart(debugBuf);
 				}
 				else
@@ -672,10 +680,13 @@ void http_get()
 		pRegisterTable->readControl = DSP_RD_OVER; // pc can write to.
 		// after the PC read,reset this. Note: PC polling this for reading pc's inBuffer
 		pRegisterTable->writeControl = DSP_WT_READY; // pc can't read.
+		//send interrupt
+		*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
+		write_uart("send the second interrupt from dsp to pc INT singal\n\r");
 		write_uart("wait PC input\r\n");
 ///////////////////////////////////////////////////////////////////////
-			// here is the temp code for:just download one picture and stop the while loop(test dpm process one picture)
-		Semaphore_pend(g_writeSemaphore,BIOS_WAIT_FOREVER);
+		// here is the temp code for:just download one picture and stop the while loop(test dpm process one picture)
+		Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
 		write_uart("pend the g_writeSemaphore\r\n");
 
 ///////////////////////////////////////////////////////////////////////

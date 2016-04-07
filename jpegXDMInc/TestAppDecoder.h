@@ -39,7 +39,10 @@ typedef struct _sTokenMapping {
   XDAS_Int8 *tokenName;
   XDAS_Void *place;
 } sTokenMapping;
-
+//typedef struct __tagPicOutInfor
+//{
+//	unsigned char g_outBuffer[0x00400000];
+//} PicOutInfor;
 /* Function Declarations */
 /*!
 ********************************************************************************

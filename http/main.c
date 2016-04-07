@@ -62,6 +62,7 @@
 
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
+extern Semaphore_Handle timeoutSemaphore;
 
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
@@ -120,8 +121,9 @@ unsigned char g_outBuffer[0x00400000]; //4M
 //#pragma DATA_SECTION(g_inBuffer,".RdSpace");
 unsigned char g_inBuffer[0x00100000]; //url value.
 //add the SEM mode .    add by LHS
-//extern Semaphore_Handle g_readSemaphore;
-//extern Semaphore_Handle g_writeSemaphore;
+extern Semaphore_Handle g_readSemaphore;
+extern Semaphore_Handle g_writeSemaphore;
+extern Semaphore_Handle timeoutSemaphore;
 /*
  volatile uint8_t *g_pOutBufFlagReg;
  volatile uint8_t *g_pInBufFlagReg;
@@ -215,6 +217,7 @@ static void isrHandler(void* handle)
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
 
 	Semaphore_post(gRecvSemaphore);
+	Semaphore_post(timeoutSemaphore);
 	CpIntc_enableHostInt(0, 3);
 }
 #endif
@@ -416,20 +419,20 @@ int StackTest()
 	 hostInt -- host interrupt number
 	 */
 
-	//CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTA, 3);
+	CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTA, 3);
 	//modify by cyx
-	CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTB, 3);
+	//CpIntc_mapSysIntToHostInt(0, PCIEXpress_Legacy_INTB, 3);
 	/*
 	 sysInt -- system interrupt number
 	 fxn -- function
 	 arg -- argument to function
 	 unmask -- bool to unmask interrupt
 	 */
-	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
-		//	TRUE);
+	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
+			TRUE);
 	//modify by cyx
-	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
-				TRUE);
+	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
+				//TRUE);
 	/*
 	 id -- Cp_Intc number
 	 hostInt -- host interrupt number

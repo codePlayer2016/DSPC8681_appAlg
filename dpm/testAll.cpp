@@ -154,7 +154,7 @@ int testlib(char *bmpfilebuf)
 		write_uart(debugInfor);
 	}
 
-	sprintf(debugInfor,"timeDetectFast=%d",timeDetectFast);
+	sprintf(debugInfor,"timeDetectFast=%d\n",timeDetectFast);
 	write_uart(debugInfor);
 //////////////////////////////////////////////////////////////////////////
 	// trigger the interrupt to the pc ,
