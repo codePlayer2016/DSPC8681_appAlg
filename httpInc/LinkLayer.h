@@ -43,14 +43,16 @@ typedef struct _tagRegisterTable
 	uint32_t writeControl;
 	uint32_t getPicNumers;
 	uint32_t failPicNumers;
-	uint32_t reserved0[0x1000 / 4 - 5];
+	uint32_t dpmOverControl;
+	uint32_t reserved0[0x1000 / 4 - 6];
 
 	// status registers. (4k)
 	uint32_t DPUBootStatus;
 	uint32_t readStatus;
 	uint32_t writeStatus;
 	uint32_t DSP_urlNumsReg;
-	uint32_t reserved1[0x1000 / 4 - 4];
+	uint32_t dpmOverStatus;
+	uint32_t reserved1[0x1000 / 4 - 5];
 } registerTable; //DSP
 #if 0
 typedef struct _tagLinkLayerRegisterTable

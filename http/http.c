@@ -224,7 +224,7 @@ void http_get()
 			urlItemNum = 0;
 		}
 
-		write_uart("start download the pci loop");
+		write_uart("start download the pci loop\n");
 		gPictureInfor.picNums = 0;
 		picNum = 0;
 		// start the down load loop.
@@ -666,7 +666,7 @@ void http_get()
 			// NOTE: the picture address (char *)g_outBuffer+4;
 			// NOTE: the picture length is the first 4 bytes of the unsigned char g_outBuffer[0x00400000]; //4M
 			Semaphore_post(g_readSemaphore);
-			write_uart("post the g_readSemaphore\r\n");
+			write_uart("post the g_readSemaphore,and DPMMain can run\r\n");
 
 ////////////////////////////////////////////////////////////////////////////
 		}
@@ -686,8 +686,8 @@ void http_get()
 		write_uart("wait PC input\r\n");
 ///////////////////////////////////////////////////////////////////////
 		// here is the temp code for:just download one picture and stop the while loop(test dpm process one picture)
-		Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("pend the g_writeSemaphore\r\n");
+		//Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
+//		write_uart("pend the g_writeSemaphore\r\n");
 
 ///////////////////////////////////////////////////////////////////////
 

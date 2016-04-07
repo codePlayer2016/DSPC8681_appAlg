@@ -20,11 +20,15 @@
 #include <c6x.h>
 #include "DPMDetector.h"
 #include "motorcyclist.h"
+#include "LinkLayer.h"
 
 #define PCIE_EP_IRQ_SET		 (0x21800064)
 //#define TRUE (1)
 #define EP_IRQ_CLR                   0x68
 #define EP_IRQ_STATUS                0x6C
+//dpm
+#define DSP_DPM_OVER  (0x00aa5500U)
+
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
 
@@ -53,7 +57,7 @@ using namespace zftdt;
 
 #define TIME_INIT (TSCH = 0, TSCL = 0)
 #define TIME_READ _itoll(TSCH, TSCL)
-
+#define C6678_PCIEDATA_BASE (0x60000000U)
 
 
 int testlib(char *bmpfilebuf)
@@ -65,6 +69,8 @@ int testlib(char *bmpfilebuf)
 	int procCount = 0;
 
 	const string prefix = "";
+	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
+
 
 
 #if 1
@@ -157,6 +163,7 @@ int testlib(char *bmpfilebuf)
 	sprintf(debugInfor,"timeDetectFast=%d\n",timeDetectFast);
 	write_uart(debugInfor);
 //////////////////////////////////////////////////////////////////////////
+	pRegisterTable->dpmOverControl |= DSP_DPM_OVER;
 	// trigger the interrupt to the pc ,
 	DEVICE_REG32_W(PCIE_EP_IRQ_SET,0x1);
 	write_uart("trigger the host interrupt\r\n");

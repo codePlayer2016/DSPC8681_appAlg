@@ -212,12 +212,12 @@ void write_uart(char* msg)
 static void isrHandler(void* handle)
 {
 	CpIntc_disableHostInt(0, 3);
-	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
+	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 	//modify by cyx
-	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
-
+	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
+	write_uart("00000 Semaphore_post\n\r");
 	Semaphore_post(gRecvSemaphore);
-	Semaphore_post(timeoutSemaphore);
+	//Semaphore_post(timeoutSemaphore);
 	CpIntc_enableHostInt(0, 3);
 }
 #endif
