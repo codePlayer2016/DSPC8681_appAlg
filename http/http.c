@@ -125,15 +125,9 @@ void http_get()
 	write_uart("http_get\n\r");
 
 #if 1
-	//add by cyx
-	//DEVICE_REG32_W(PCIE_LEGACY_B_IRQ_ENABLE_SET,0x1);
-	//DEVICE_REG32_W(pRegisterTable+PCIE_IRQ_EOI,0x1);
-	//CpIntc_enableHostInt(0, 3);
-	//dsp send interrupt to pc
+
 	*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
 	write_uart("cyx send interrupt from dsp to pc INT singal\n\r");
-	//*((uint32_t *)(PCIE_EP_IRQ_CLR))=0x1;
-	//write_uart("cyx clear interrupt in dsp\n\r");
 
 	while (1 == g_DownloadFlags)
 	{
