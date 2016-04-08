@@ -28,10 +28,10 @@
 #define EP_IRQ_STATUS                0x6C
 //dpm
 #define DSP_DPM_OVER  (0x00aa5500U)
+#define DSP_DPM_CLROVER  (0x0055aa00U)
 
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
-
 
 #ifdef __cplusplus
 extern "C"
@@ -43,6 +43,7 @@ extern "C"
 #include <ti/sysbios/BIOS.h>
 extern void write_uart(char* msg);
 extern Semaphore_Handle gRecvSemaphore;
+extern Semaphore_Handle gSendSemaphore;
 
 #ifdef __cplusplus
 }
@@ -59,7 +60,6 @@ using namespace zftdt;
 #define TIME_READ _itoll(TSCH, TSCL)
 #define C6678_PCIEDATA_BASE (0x60000000U)
 
-
 int testlib(char *bmpfilebuf)
 {
 	long long beg, end;
@@ -71,33 +71,30 @@ int testlib(char *bmpfilebuf)
 	const string prefix = "";
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 
-
-
 #if 1
-	std::string  str0(pMotorParam0);
-	std::string  str1(pMotorParam1);
-	std::string str2(pMotorParam2);
-	std::string str3(pMotorParam3);
-	std::string str4(pMotorParam4);
-	std::string str5(pMotorParam5);
-	std::string str6(pMotorParam6);
-	std::string str7(pMotorParam7);
-	std::string str8(pMotorParam8);
-	std::string str9(pMotorParam9);
-	std::string str10(pMotorParam10);
-	std::string str11(pMotorParam11);
-	const string modelPath=str0+str1+str2+str3+str4+str5+str6+str7+str8+str9+str10+str11;
+			std::string str0(pMotorParam0);
+			std::string str1(pMotorParam1);
+			std::string str2(pMotorParam2);
+			std::string str3(pMotorParam3);
+			std::string str4(pMotorParam4);
+			std::string str5(pMotorParam5);
+			std::string str6(pMotorParam6);
+			std::string str7(pMotorParam7);
+			std::string str8(pMotorParam8);
+			std::string str9(pMotorParam9);
+			std::string str10(pMotorParam10);
+			std::string str11(pMotorParam11);
+			const string modelPath=str0+str1+str2+str3+str4+str5+str6+str7+str8+str9+str10+str11;
 #endif
 
-	double threshold = -0.6;
-	double rootThreshold= 0.9;
-	double overlap=	0.4;
-	int padx= DPM_HOG_PADX, pady = DPM_HOG_PADY, interval = DPM_PYRAMID_LAMBDA;
-	int maxLevels = DPM_PYRAMID_MAX_LEVELS, minSideLen =DPM_PYRAMID_MIN_DETECT_STRIDE;
-    IplImage* origImage = cvLoadImageFromArray(bmpfilebuf,0);
+			double threshold = -0.6;
+			double rootThreshold= 0.9;
+			double overlap= 0.4;
+			int padx= DPM_HOG_PADX,pady= DPM_HOG_PADY,interval=DPM_PYRAMID_LAMBDA;
+			int maxLevels=DPM_PYRAMID_MAX_LEVELS,minSideLen=DPM_PYRAMID_MIN_DETECT_STRIDE;
+			IplImage*origImage=cvLoadImageFromArray	(bmpfilebuf,0);
 
-    DeformablePartModel model(modelPath); //haoshi
-
+	DeformablePartModel model(modelPath); //haoshi
 
 	IplImage *normImage = cvCreateImage(
 			cvSize(origImage->width, origImage->height), origImage->depth,
@@ -105,7 +102,7 @@ int testlib(char *bmpfilebuf)
 
 ////////////////////////////////////////////////////
 	write_uart("dsp wait for being triggerred to start dpm\r\n");
-	Semaphore_pend(gRecvSemaphore,BIOS_WAIT_FOREVER);
+	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
 
 ////////////////////////////////////////////////////
 
@@ -151,23 +148,30 @@ int testlib(char *bmpfilebuf)
 		//printf("%d,%d,%d,%d\n",fastResults[i].rects[0].x,fastResults[i].rects[0].y,fastResults[i].rects[0].width,fastResults[i].rects[0].height);
 #if 0
 		foutDetectFast << fastResults[i].rects[0].x << ","
-				<< fastResults[i].rects[0].y << ","
-				<< fastResults[i].rects[0].width << ","
-				<< fastResults[i].rects[0].height << " ";
+		<< fastResults[i].rects[0].y << ","
+		<< fastResults[i].rects[0].width << ","
+		<< fastResults[i].rects[0].height << " ";
 #endif
 
-		sprintf(debugInfor,"%d,%d,%d,%d\r\n",fastResults[i].rects[0].x,fastResults[i].rects[0].y,fastResults[i].rects[0].width,fastResults[i].rects[0].height);
+		sprintf(debugInfor, "%d,%d,%d,%d\r\n", fastResults[i].rects[0].x,
+				fastResults[i].rects[0].y, fastResults[i].rects[0].width,
+				fastResults[i].rects[0].height);
 		write_uart(debugInfor);
 	}
 
-	sprintf(debugInfor,"timeDetectFast=%d\n",timeDetectFast);
+	sprintf(debugInfor, "timeDetectFast=%d\n", timeDetectFast);
 	write_uart(debugInfor);
-//////////////////////////////////////////////////////////////////////////
-	pRegisterTable->dpmOverControl |= DSP_DPM_OVER;
+
+	//check clear dpmOver interrupt reg or not
+	if (pRegisterTable->dpmOverStatus & DSP_DPM_CLROVER)
+	{
+		pRegisterTable->dpmOverControl |= DSP_DPM_OVER;
+	}
 	// trigger the interrupt to the pc ,
-	DEVICE_REG32_W(PCIE_EP_IRQ_SET,0x1);
+	DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
 	write_uart("trigger the host interrupt\r\n");
-//////////////////////////////////////////////////////////////////////////
+	Semaphore_post(gSendSemaphore);
+	write_uart("post gSendSemaphore,make http loop can continue \n");
 
 	cvReleaseImage(&normImage);
 	cvReleaseImage(&origImage);
@@ -177,24 +181,24 @@ int testlib(char *bmpfilebuf)
 	return 0;
 }
 
-
 #if	1
 int TestCase_measureDPM()
 {
-	const char *imagepath ="D:/DPM/LIHUOSHENGgiveChenglonghu/DMP_DSP/test/bmpImage400/101.bmp";
-	FILE *ImageFile=fopen(imagepath,"rb");
-	if(ImageFile==NULL)
+	const char *imagepath =
+			"D:/DPM/LIHUOSHENGgiveChenglonghu/DMP_DSP/test/bmpImage400/101.bmp";
+	FILE *ImageFile = fopen(imagepath, "rb");
+	if (ImageFile == NULL)
 	{
 		printf("ERROR: can not open the imagefile\n");
 		exit(-1);
 	}
-    fseek (ImageFile, 0, SEEK_END);
-    int ImageFileSize =ftell (ImageFile);
+	fseek(ImageFile, 0, SEEK_END);
+	int ImageFileSize = ftell(ImageFile);
 	fseek(ImageFile, 0, SEEK_SET);
-    char *ImageFileBuf=(char *)malloc(ImageFileSize);
-    int tmp=fread(ImageFileBuf,1,ImageFileSize,ImageFile);
-    fclose(ImageFile);
-    testlib(ImageFileBuf);
+	char *ImageFileBuf = (char *) malloc(ImageFileSize);
+	int tmp = fread(ImageFileBuf, 1, ImageFileSize, ImageFile);
+	fclose(ImageFile);
+	testlib(ImageFileBuf);
 
 }
 
@@ -217,7 +221,7 @@ int TestCase_measureDPM()
 //	DeformablePartModel model(modelPath); //haoshi
 	double threshold = -0.6,
 	rootThreshold= 0.9;
-	double overlap=	0.4;
+	double overlap= 0.4;
 	int padx= DPM_HOG_PADX, pady = DPM_HOG_PADY, interval = DPM_PYRAMID_LAMBDA;
 	int maxLevels = DPM_PYRAMID_MAX_LEVELS, minSideLen =DPM_PYRAMID_MIN_DETECT_STRIDE;
 
@@ -231,13 +235,13 @@ int TestCase_measureDPM()
 		printf("ERROR: can not open the imagefile\n");
 		exit(-1);
 	}
-    fseek (ImageFile, 0, SEEK_END);
-    int ImageFileSize =ftell (ImageFile);
+	fseek (ImageFile, 0, SEEK_END);
+	int ImageFileSize =ftell (ImageFile);
 	fseek(ImageFile, 0, SEEK_SET);
-    char *ImageFileBuf=(char *)malloc(ImageFileSize);
-    int tmp=fread(ImageFileBuf,1,ImageFileSize,ImageFile);
-    IplImage* origImage = cvLoadImageFromArray(ImageFileBuf,0);
-    fclose(ImageFile);
+	char *ImageFileBuf=(char *)malloc(ImageFileSize);
+	int tmp=fread(ImageFileBuf,1,ImageFileSize,ImageFile);
+	IplImage* origImage = cvLoadImageFromArray(ImageFileBuf,0);
+	fclose(ImageFile);
 #else
 	fstream ffstrm(filePath.c_str());
 	if (!ffstrm.is_open())
@@ -255,12 +259,12 @@ int TestCase_measureDPM()
 	if (origImage == NULL)
 	{
 		std::cout << "image " << buf << " to initialize HOG is not found."
-				<< std::endl;
+		<< std::endl;
 		exit(-1);
 	}
 #endif
 
-    DeformablePartModel model(modelPath); //haoshi
+	DeformablePartModel model(modelPath); //haoshi
 
 	ofstream foutDetectFast("dectectFastRegion.txt");
 	ofstream foutFastTime("dectectFastTime.csv");
@@ -281,58 +285,57 @@ int TestCase_measureDPM()
 
 //	do
 //	{
-		procCount++;
-		std::cout << buf << std::endl;
-		foutFastTime << buf << ",";
+	procCount++;
+	std::cout << buf << std::endl;
+	foutFastTime << buf << ",";
 //		if (origImage == NULL)
 //			continue;
 
-		cvCopy(origImage, normImage);
+	cvCopy(origImage, normImage);
 
-		static zftdt::DPMVector<Result> fastResults(DPM_MAX_MAXIA);
-		fastResults.size = 0;
+	static zftdt::DPMVector<Result> fastResults(DPM_MAX_MAXIA);
+	fastResults.size = 0;
 
-		for (int i = 0; i < 100; ++i)
-		{
-			beg = TIME_READ;
-			CvSize size = model.getMaxSizeOfFilters();
+	for (int i = 0; i < 100; ++i)
+	{
+		beg = TIME_READ;
+		CvSize size = model.getMaxSizeOfFilters();
 
-			int maxFilterSideLen = std::max(size.width, size.height);
-			pyramid.build(normImage,
-					std::max(maxFilterSideLen * DPM_HOG_CELLSIZE, minSideLen),
-					maxLevels); //
-			model.detectFast(normImage, minSideLen, maxLevels, pyramid,
-					rootThreshold, threshold, overlap, fastResults);
-			end = TIME_READ;
+		int maxFilterSideLen = std::max(size.width, size.height);
+		pyramid.build(normImage,
+				std::max(maxFilterSideLen * DPM_HOG_CELLSIZE, minSideLen),
+				maxLevels); //
+		model.detectFast(normImage, minSideLen, maxLevels, pyramid,
+				rootThreshold, threshold, overlap, fastResults);
+		end = TIME_READ;
 
-			timeDetectFast = (end - beg);
-			//std::cout << timeDetectFast << ",";
-			foutFastTime << timeDetectFast << ",";
-		}
+		timeDetectFast = (end - beg);
+		//std::cout << timeDetectFast << ",";
+		foutFastTime << timeDetectFast << ",";
+	}
 
-		foutDetectFast << buf << ";";
-		for (int i = 0; i < fastResults.size; i++)
-		{
-			foutDetectFast << fastResults[i].rects[0].x << ","
-					<< fastResults[i].rects[0].y << ","
-					<< fastResults[i].rects[0].width << ","
-					<< fastResults[i].rects[0].height << " ";
-		}
-		foutDetectFast << std::endl;
-		//std::cout << std::endl;
-		foutFastTime << std::endl;
-		cvReleaseImage(&origImage);
-		origImage = NULL;
-/*
-		getline(ffstrm, buf);
-		if (buf.empty())
-		{
-			continue;
-		}
-		origImage = cvLoadImageFromFile(buf.c_str());
-*/
+	foutDetectFast << buf << ";";
+	for (int i = 0; i < fastResults.size; i++)
+	{
+		foutDetectFast << fastResults[i].rects[0].x << ","
+		<< fastResults[i].rects[0].y << ","
+		<< fastResults[i].rects[0].width << ","
+		<< fastResults[i].rects[0].height << " ";
+	}
+	foutDetectFast << std::endl;
+	//std::cout << std::endl;
+	foutFastTime << std::endl;
+	cvReleaseImage(&origImage);
+	origImage = NULL;
+	/*
+	 getline(ffstrm, buf);
+	 if (buf.empty())
+	 {
+	 continue;
+	 }
+	 origImage = cvLoadImageFromFile(buf.c_str());
+	 */
 //	} while (!ffstrm.eof());
-
 	foutDetectFast.close();
 	foutFastTime.close();
 

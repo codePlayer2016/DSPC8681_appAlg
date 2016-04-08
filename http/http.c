@@ -11,48 +11,13 @@
 #include "http.h"
 #include "LinkLayer.h"
 
-#define MAGIC_ADDR     0x87fffc
-//add cyx
-#define PCIE_EP_IRQ_SET		           0x21800064
-#define PCIE_EP_IRQ_CLR	               0x21800068
-#define PCIE_LEGACY_A_IRQ_STATUS      0x21800184
-#define PCIE_LEGACY_B_IRQ_STATUS      0x21800194
-#define PCIE_LEGACY_A_IRQ_ENABLE_SET  0x21800188
-#define PCIE_LEGACY_B_IRQ_ENABLE_SET  0x21800198
-#define PCIE_IRQ_EOI                  50
-
-#define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
-#define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
-#define C6678_PCIEDATA_BASE (0x60000000U)
-#define DSP_RUN_READY			(0x00010000U)
-#define DSP_RUN_FAIL			(0x00000000U)
-
-// PC-side write(DSP-side read) buffer status.
-#define PC_WT_READY		(0x000055aaU)
-#define PC_WT_OVER		(0x55aa0000U)
-#define PC_WT_BUSY		(0x55555555U)
-// DSP-side read buffer status.
-#define DSP_RD_INIT		(0x000055aaU)
-#define DSP_RD_READY 	(0x55aa0000U)
-#define DSP_RD_OVER 	(0x000055aaU)
-#define DSP_RD_BUSY		(0x55555555U)
-
-// PC-side read(DSP-side write) buffer status.
-#define PC_RD_INIT		(0xaa000055U)
-#define PC_RD_READY		(0x550000aaU)
-#define PC_RD_OVER		(0xaa000055U)
-#define PC_RD_BUSY		(0x55555555U)
-// DSP-side write buffer status.
-#define DSP_WT_INIT		(0x550000aaU)
-#define DSP_WT_READY 	(0xaa000055U)
-#define DSP_WT_OVER 	(0x550000aaU)
-#define DSP_WT_BUSY		(0x55555555U)
-
-
 extern Semaphore_Handle g_readSemaphore;
 extern Semaphore_Handle g_writeSemaphore;
 
-extern Semaphore_Handle timeoutSemaphore;
+extern Semaphore_Handle httptodpmSemaphore;
+
+extern Semaphore_Handle gSendSemaphore;
+
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
 extern unsigned char g_outBuffer[0x00400000]; //4M
 //extern unsigned char g_outBuffer[0x400000];//4M
@@ -197,7 +162,7 @@ void http_get()
 			write_uart(debugBuf);
 			urlItemNum = 0;
 			//timeout
-			Semaphore_pend(timeoutSemaphore, BIOS_WAIT_FOREVER);
+			Semaphore_pend(g_readSemaphore, BIOS_WAIT_FOREVER);
 			urlItemNum = DEVICE_REG32_R(&(pRegisterTable->DSP_urlNumsReg));
 			sprintf(debugBuf, "urlItemNum=%d\r\n",
 					pRegisterTable->DSP_urlNumsReg);
@@ -656,7 +621,8 @@ void http_get()
 			}
 			else
 			{
-				retVal = -1;
+				Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
+				//retVal = -1;
 				write_uart("wait the pc read.time over\n\r");
 			}
 /////////////////////////////////////////////////////////////////////////////
@@ -665,8 +631,6 @@ void http_get()
 
 			// NOTE: the picture address (char *)g_outBuffer+4;
 			// NOTE: the picture length is the first 4 bytes of the unsigned char g_outBuffer[0x00400000]; //4M
-			Semaphore_post(g_readSemaphore);
-			write_uart("post the g_readSemaphore,and DPMMain can run\r\n");
 
 ////////////////////////////////////////////////////////////////////////////
 		}
@@ -684,10 +648,13 @@ void http_get()
 		*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
 		write_uart("send the second interrupt from dsp to pc INT singal\n\r");
 		write_uart("wait PC input\r\n");
+
+		Semaphore_post(httptodpmSemaphore);
+		write_uart("post the httptodpmSemaphore,and DPMMain can run\r\n");
 ///////////////////////////////////////////////////////////////////////
 		// here is the temp code for:just download one picture and stop the while loop(test dpm process one picture)
-		//Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
-//		write_uart("pend the g_writeSemaphore\r\n");
+		Semaphore_pend(gSendSemaphore, BIOS_WAIT_FOREVER);
+		write_uart("pend the gSendSemaphore\r\n");
 
 ///////////////////////////////////////////////////////////////////////
 

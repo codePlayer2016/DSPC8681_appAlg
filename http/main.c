@@ -59,13 +59,20 @@
 
 #include "http.h"
 #include "DPMMain.h"
+#include "LinkLayer.h"
 
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
+
 extern Semaphore_Handle timeoutSemaphore;
+
+extern Semaphore_Handle g_readSemaphore;
+extern Semaphore_Handle g_writeSemaphore;
+
 
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
+
 
 #define DDR_TEST_START                 0x80000000
 #define DDR_TEST_END                   0x80400000
@@ -121,9 +128,7 @@ unsigned char g_outBuffer[0x00400000]; //4M
 //#pragma DATA_SECTION(g_inBuffer,".RdSpace");
 unsigned char g_inBuffer[0x00100000]; //url value.
 //add the SEM mode .    add by LHS
-extern Semaphore_Handle g_readSemaphore;
-extern Semaphore_Handle g_writeSemaphore;
-extern Semaphore_Handle timeoutSemaphore;
+
 /*
  volatile uint8_t *g_pOutBufFlagReg;
  volatile uint8_t *g_pInBufFlagReg;
@@ -211,13 +216,23 @@ void write_uart(char* msg)
 /////////////////////////////////////////////////////////////////////////////////////////////
 static void isrHandler(void* handle)
 {
+	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 	//modify by cyx
 	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
-	write_uart("00000 Semaphore_post\n\r");
-	Semaphore_post(gRecvSemaphore);
-	//Semaphore_post(timeoutSemaphore);
+	if((pRegisterTable->dpmStartStatus) & DSP_DPM_START){
+
+		Semaphore_post(gRecvSemaphore);
+		//clear interrupt reg
+		pRegisterTable->dpmStartControl = DSP_DPM_CLR;
+	}
+	if((pRegisterTable->readStatus) & DSP_RD_READY){
+		Semaphore_post(g_readSemaphore);
+	}
+	if(pRegisterTable->writeStatus & DSP_WT_READY){
+		Semaphore_post(g_writeSemaphore);
+	}
 	CpIntc_enableHostInt(0, 3);
 }
 #endif
@@ -346,6 +361,7 @@ int StackTest()
 
 	int EventID_intc;
 	Hwi_Params HwiParam_intc;
+	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 
 	HANDLE hCfg;
 //	CI_SERVICE_TELNET telnet;
@@ -462,6 +478,10 @@ int StackTest()
 	// THIS MUST BE THE ABSOLUTE FIRST THING DONE IN AN APPLICATION before
 	//  using the stack!!
 	//
+
+	//clear interrupt
+	pRegisterTable->dpmStartControl= DSP_DPM_CLR;
+
 	rc = NC_SystemOpen(NC_PRIORITY_LOW, NC_OPMODE_INTERRUPT);
 	if (rc)
 	{

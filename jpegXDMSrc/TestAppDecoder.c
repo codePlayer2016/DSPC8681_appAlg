@@ -47,7 +47,7 @@ void write_uart(char* msg)
 // for uart debug
 char debugInfor[100];
 
-extern Semaphore_Handle g_readSemaphore;
+extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gRecvSemaphore;
 extern unsigned char g_outBuffer[0x00400000]; //4M
 //extern PicOutInfor gPicOutInfor[40];
@@ -111,8 +111,7 @@ void DPMMain()
 	/* Enable Cache Settings  ELF */
 	int byteremain = 0, inputsize = 0;
 	// this is promise for dpm being after loadurl
-	Semaphore_pend(g_readSemaphore, BIOS_WAIT_FOREVER);
-
+	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
 	write_uart("222222222 \r\n");
 
 	inputSrc=g_outBuffer;
