@@ -28,6 +28,14 @@
 #define STRING_SIZE            256
 #define NUM_ALGS                 1      /* Number of Algorithms              */
 
+
+#define PCIE_EP_IRQ_SET		 (0x21800064)
+#define DSP_DPM_OVER  (0x00aa5500U)
+#define DSP_DPM_CLROVER  (0x0055aa00U)
+#define C6678_PCIEDATA_BASE (0x60000000U)
+#define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
+
+
 /*!
 @struct sTokenMapping 
 @brief  Token Mapping structure for parsing codec specific configuration file
@@ -80,7 +88,7 @@ XDAS_Int32  TestApp_ReadByteStream(FILE *fInFile);
 XDAS_Void   TestApp_WriteOutputData(FILE *fOutFile, XDM1_BufDesc * outputBufDesc, 
                                     IIMGDEC1_OutArgs *outArgs,int width ,int height);
 
-XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height);
+XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height,int picNum);
 
 
 /*!

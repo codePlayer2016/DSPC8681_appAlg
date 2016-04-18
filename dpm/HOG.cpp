@@ -11,6 +11,8 @@
 #include <limits.h>
 #include <algorithm>
 #include <assert.h>
+#include "ti/platform/platform.h"
+extern void write_uart(char* msg);
 
 #define ENABLE_SSE 0
 //static const int NbFeatures = 32;
@@ -49,8 +51,8 @@ struct HOGTable
 				const float alpha = angle - bin0;
 
 				bins[dy + 255][dx + 255][0] = bin0;   //0,1,2,...,17
-				bins[dy + 255][dx + 255][1] = bin1;   //1,2,3,...,17,0  ¼ÇÂ¼Ã¿¸öÏñËØµã¶ÔÓ¦ÌÝ¶È·½ÏòËùÔÚ bin Çø¼ä
-				magnitudes[dy + 255][dx + 255][0] = magnitude * (1.0 - alpha);   //ÌÝ¶È¸³ÖµÔÚÏàÁÚ bin µÄÓ³Éä²¿·Ö
+				bins[dy + 255][dx + 255][1] = bin1;   //1,2,3,...,17,0  ï¿½ï¿½Â¼Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½Øµï¿½ï¿½Ó¦ï¿½Ý¶È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ bin ï¿½ï¿½ï¿½
+				magnitudes[dy + 255][dx + 255][0] = magnitude * (1.0 - alpha);   //ï¿½Ý¶È¸ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ bin ï¿½ï¿½Ó³ï¿½ä²¿ï¿½ï¿½
 				magnitudes[dy + 255][dx + 255][1] = magnitude * alpha;
 			}
 		}
@@ -107,6 +109,7 @@ zftdt::HOGPyramid::HOGPyramid(const int imageW, const int imageH, const int padx
 	int width =imageW;
 	int height = imageH;
 	int step = (width * 3 + (DPM_ALLOC_ALIGN - 1) / DPM_ALLOC_ALIGN) * DPM_ALLOC_ALIGN;
+
 	//ptr_image = _aligned_malloc(height * step,DPM_ALLOC_ALIGN);
 	//int minDetectStride = std::min(DPM_MAX_IN_WIDTH,DPM_MAX_IN_HEIGHT) / pow(2.0f,static_cast<float>(DPM_PYRAMID_MAX_LEVELS)/interval);
 	//if(minDetectStride > DPM_PYRAMID_MIN_DETECT_STRIDE)//levels
@@ -162,6 +165,7 @@ zftdt::HOGPyramid::HOGPyramid(const int imageW, const int imageH, const int padx
 			levels[i + interval] = cvCreateMat(_height, _width, CV_32FC1);
 			assert(levels[i + interval] != NULL);
 		}
+
 		for (int j = 2; i + j * interval <= maxScale; ++j)
 		{
 			//width >>= 1;
@@ -187,6 +191,7 @@ zftdt::HOGPyramid::HOGPyramid(const int imageW, const int imageH, const int padx
 			assert(scaledImage[i + j * interval] != NULL);
 		}
 	}
+
 #endif
 }
 

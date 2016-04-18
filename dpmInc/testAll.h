@@ -16,7 +16,7 @@ extern "C"
 #endif
 
 int TestCase_measureDPM();
-int testlib(char *bmpfilebuf);
+int testlib(char *bmpfilebuf,int picNum);
 
 #ifdef __cplusplus
 

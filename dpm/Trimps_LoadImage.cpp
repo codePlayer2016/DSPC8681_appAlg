@@ -8,6 +8,10 @@
 #include "../src/_cv.h"
 #include <stdio.h>
 #include "cv.h"
+/* Platform utilities include */
+#include "ti/platform/platform.h"
+extern void write_uart(char* msg);
+
 #define BMP_ALIGN (4)
 
 const unsigned char palette[256][4] = {
@@ -358,7 +362,7 @@ IplImage* cvLoadImageFromFile(const char* filename, int flags)
  	step = modbytes ? ((bmpinfohead.width*channels)-modbytes + BMP_ALIGN)  : (bmpinfohead.width*channels);
 
 	image = cvCreateImage(cvSize(bmpinfohead.width, bmpinfohead.height), 8, channels);
-	fseek(p, bmpinfohead.startPosition, SEEK_SET);//¿ÉÒÔÌø¹ýµ÷É«°å
+	fseek(p, bmpinfohead.startPosition, SEEK_SET);//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½
 	char *pdata = image->imageData + (bmpinfohead.height - 1) * image->widthStep;
 	for(idx=bmpinfohead.height-1; idx >= 0 ; idx--)
 	{
@@ -386,6 +390,7 @@ IplImage* cvLoadImageFromArray( const char* filedata, int flags)
 		BmpInfoHead bmpinfohead;
 		int step, modbytes, idx;
 		IplImage* image = 0;
+
 
 		memcpy(&bmpfilehead,filedata, sizeof(BmpFileHead));
 		memcpy(&bmpinfohead,filedata + sizeof(BmpFileHead), sizeof(BmpInfoHead));
@@ -421,6 +426,7 @@ IplImage* cvLoadImageFromArray( const char* filedata, int flags)
 //		src = (char*)filedata + sizeof(BmpFileHead) + sizeof(BmpInfoHead);
 		dst = image->imageData + (bmpinfohead.height-1) * image->widthStep;
 		//step = image->width * channels;
+
 		for(idx=bmpinfohead.height-1; idx >= 0 ; idx--)
 		{
 			memcpy(dst,src, step);
@@ -442,7 +448,7 @@ int cvSaveImage(const char* filename, const CvArr* image)
     IplImage *src = cvGetImage(image,&Header);
     int write_num = 0;
 
-    int step = src->width * src->nChannels;//windowsÎ»Í¼step±ØÐëÊÇ4µÄ±¶Êý
+    int step = src->width * src->nChannels;//windowsÎ»Í¼stepï¿½ï¿½ï¿½ï¿½ï¿½ï¿½4ï¿½Ä±ï¿½ï¿½ï¿½
 	int modbyte = step & (BMP_ALIGN - 1); //
 	if (modbyte != 0)
 		step += (BMP_ALIGN - modbyte);
@@ -536,7 +542,7 @@ int cvSaveImageInAddr(char* addr, const CvArr* image)
     if(addr == NULL || image == NULL)
     	return 0;
     IplImage *src = cvGetImage(image,&Header);
-    int step = src->width * src->nChannels;//windowsÎ»Í¼step±ØÐëÊÇ4µÄ±¶Êý
+    int step = src->width * src->nChannels;//windowsÎ»Í¼stepï¿½ï¿½ï¿½ï¿½ï¿½ï¿½4ï¿½Ä±ï¿½ï¿½ï¿½
     int modbyte = step & (BMP_ALIGN - 1);//
     if(modbyte != 0)
     	step  += (BMP_ALIGN - modbyte);
@@ -587,14 +593,14 @@ int cvSaveImageInAddr(char* addr, const CvArr* image)
 }
 
 /*
- * pdst-Ä¿±êbmpÍ¼µØÖ· imgData-Í¼ÏñÔ´µØÖ·£¬width£¬height¿í¸ß£¬widthstep ×Ö½Ú¶ÔÆëÔ´Í¼Ã¿ÐÐ×Ö½ÚÊý£¨8×Ö½Ú£©£¬channelÍ¨µÀÊý
+ * pdst-Ä¿ï¿½ï¿½bmpÍ¼ï¿½ï¿½Ö· imgData-Í¼ï¿½ï¿½Ô´ï¿½ï¿½Ö·ï¿½ï¿½widthï¿½ï¿½heightï¿½ï¿½ß£ï¿½widthstep ï¿½Ö½Ú¶ï¿½ï¿½ï¿½Ô´Í¼Ã¿ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½8ï¿½Ö½Ú£ï¿½ï¿½ï¿½channelÍ¨ï¿½ï¿½ï¿½ï¿½
  */
 int cvSaveImageInAddr0(char* pdst, char* imgData,const int imgWidth, const int imgHeight, const int imgWidthStep, const int channels)
 {
 	char *addr = pdst;
 	BmpFileHead bmpfilehead = {'B','M'};
 	BmpInfoHead bmpinfohead;
-	int step = imgWidth * channels; //windowsÎ»Í¼step±ØÐëÊÇ4µÄ±¶Êý
+	int step = imgWidth * channels; //windowsÎ»Í¼stepï¿½ï¿½ï¿½ï¿½ï¿½ï¿½4ï¿½Ä±ï¿½ï¿½ï¿½
 	int modbyte = step & (BMP_ALIGN - 1); //
 	if (modbyte != 0)
 		step += (BMP_ALIGN - modbyte);
@@ -646,7 +652,7 @@ int cvSaveImageInAddr0(char* pdst, char* imgData,const int imgWidth, const int i
 
 int cvGetSaveImageSize(const int imgWidth, const int imgHeight,const int channels)
 {
-	int step = imgWidth * channels; //windowsÎ»Í¼step±ØÐëÊÇ4µÄ±¶Êý
+	int step = imgWidth * channels; //windowsÎ»Í¼stepï¿½ï¿½ï¿½ï¿½ï¿½ï¿½4ï¿½Ä±ï¿½ï¿½ï¿½
 	int modbyte = step & (BMP_ALIGN - 1); //
 	if (modbyte != 0)
 		step += (BMP_ALIGN - modbyte);

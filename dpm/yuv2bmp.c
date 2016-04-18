@@ -177,7 +177,7 @@ void yuv2bmp(unsigned char * YUV,int width,int height)
 */
 
 
-void yuv2bmp(unsigned char * YUV,int width,int height)
+void yuv2bmp(unsigned char * YUV,int width,int height,int picNum)
 {
 //	FILE *BmpFile =fopen("E:\\test.bmp","wb");
 //	unsigned char *ImageFileBuf=(unsigned char *)malloc(width*height*3>>1);
@@ -203,8 +203,7 @@ void yuv2bmp(unsigned char * YUV,int width,int height)
 //	int ret=fwrite(BmpBuf,1,width*height*3+54,BmpFile);
 	write_uart("dpm algorith start\r\n");
 
-	testlib((char *)BmpBuf);
-
+	testlib((char *)BmpBuf,picNum);
 	write_uart("dpm algorith over\r\n");
 //	fclose(BmpFile);
 	free(RgbBuf);

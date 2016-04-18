@@ -10,6 +10,7 @@
 
 #include "DPMDetector.h"
 
+
 void HOG(const IplImage* image, CvMat* level, const int padX, const int padY, const int cellSize);
 
 void convolve(const CvMat* x, const CvMat* y, CvMat** z,

@@ -21,6 +21,8 @@
 /* JPEG Interface header files */
 #include "jpegdec_ti.h"
 #include "jpegdec.h"
+#include "LinkLayer.h"
+
 
 
 /* CSL and DMAN3 header files                                                 */
@@ -44,12 +46,23 @@ void write_uart(char* msg)
 }
 #endif
 
+
+typedef struct __tagPicInfor
+{
+	uint8_t *picAddr[100];
+	uint32_t picLength[100];
+	uint8_t picUrls[100][102];
+	uint8_t picNums;
+} PicInfor;
 // for uart debug
 char debugInfor[100];
 
 extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gRecvSemaphore;
+extern Semaphore_Handle gSendSemaphore;
 extern unsigned char g_outBuffer[0x00400000]; //4M
+
+extern PicInfor gPictureInfor;
 //extern PicOutInfor gPicOutInfor[40];
 // modify by LHS. the inputData is the src picture.
 //XDAS_Int8 inputData[INPUT_BUFFER_SIZE];
@@ -62,7 +75,7 @@ XDAS_Int8 outputData[OUTPUT_BUFFER_SIZE];
 
 XDAS_Int8 refData[OUTPUT_BUFFER_SIZE];
 
-extern void yuv2bmp(unsigned char * YUV, int width, int height);
+extern void yuv2bmp(unsigned char * YUV, int width, int height,int picNum);
 
 JPEGDEC_Handle handle;
 JPEGDEC_Params jpegdecParams;
@@ -108,14 +121,24 @@ void DPMMain()
 	/* Other variables                                                          */
 	XDAS_Int32 ScanCount, retVal, testVal, countConfigSet;
 
+	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
+	unsigned int picNum=0;
+	char debugBuf[100];
+
+
 	/* Enable Cache Settings  ELF */
 	int byteremain = 0, inputsize = 0;
 	// this is promise for dpm being after loadurl
 	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-	write_uart("222222222 \r\n");
+	sprintf(debugBuf, "2222 gPictureInfor.picNums is %d\r\n",gPictureInfor.picNums);
+	write_uart(debugBuf);
 
-	inputSrc=g_outBuffer;
-	jpegPicLength=(int )(*((int *)inputSrc));
+while(picNum<gPictureInfor.picNums){
+	//inputSrc=g_outBuffer;
+	//jpegPicLength=(int )(*((int *)inputSrc));
+	//cyx modify for process many pictures
+	inputSrc=gPictureInfor.picAddr[picNum];
+	jpegPicLength=gPictureInfor.picLength[picNum];
 	inputData=((char *)inputSrc+4);
 	validBytes=jpegPicLength;
 
@@ -125,11 +148,11 @@ void DPMMain()
 
 	jpegDecParams->imgdecParams.size=sizeof(JPEGDEC_Params);
 	// TODO: the two params should be set by parse the jpeg picture.
-	jpegDecParams->imgdecParams.maxHeight=320;
-	jpegDecParams->imgdecParams.maxWidth=400;
+	jpegDecParams->imgdecParams.maxHeight=1500;
+	jpegDecParams->imgdecParams.maxWidth=2000;
 	jpegDecParams->imgdecParams.maxScans=15;//?
 
-	jpegDecParams->imgdecParams.forceChromaFormat=0;
+	jpegDecParams->imgdecParams.forceChromaFormat=0;//XDM_RGB
 	jpegDecParams->imgdecParams.dataEndianness=XDM_BYTE;
 	jpegDecParams->outImgRes=1;
 	jpegDecParams->progressiveDecFlag=0;
@@ -506,12 +529,14 @@ void DPMMain()
 						status->imgdecStatus.outputHeight);
 			}
 #endif
-			dpmProcess((XDM1_BufDesc * )&outputBufDesc,status->imgdecStatus.outputWidth,status->imgdecStatus.outputHeight);
+			dpmProcess((XDM1_BufDesc * )&outputBufDesc,status->imgdecStatus.outputWidth,status->imgdecStatus.outputHeight,picNum);
 		} // dynamicParams.progDisplay
 	}
 
 	/* Output file close                                                     */
 	//fclose(ftestFile);
+	sprintf(debugInfor,"width=%d,heigth=%d\r\n",(status->imgdecStatus.outputWidth),(status->imgdecStatus.outputHeight));
+	write_uart(debugInfor);
 
 	/* Delete the Algorithm instance object specified by handle */
 	ALG_delete(handle);
@@ -520,9 +545,24 @@ void DPMMain()
 	{
 		ScanCount = 1; /* To avoid division with zero */
 	}
+	inputSrc=NULL;
+	inputData=NULL;
+	picNum++;
+}
 
-	sprintf(debugInfor,"width=%d,heigth=%d\r\n",(status->imgdecStatus.outputWidth),(status->imgdecStatus.outputHeight));
-	write_uart(debugInfor);
+	//check clear dpmOver interrupt reg or not
+	if (pRegisterTable->dpmOverStatus & DSP_DPM_CLROVER)
+	{
+		pRegisterTable->dpmOverControl |= DSP_DPM_OVER;
+	}
+	// trigger the interrupt to the pc ,
+	DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+	write_uart("trigger the host interrupt\r\n");
+
+
+	Semaphore_post(gSendSemaphore);
+	write_uart("post gSendSemaphore,make http loop can continue\r\n");
+
 #if 0
 	printf("\n --------------  SUMMARY --------------------\n");
 	printf("\t Total number of Scans              = %d\n",
@@ -648,7 +688,7 @@ XDAS_Void TestApp_WriteOutputData(FILE *fOutFile, XDM1_BufDesc * outputBufDesc,
 			yuv + outputBufDesc->descs[0].bufSize
 					+ outputBufDesc->descs[1].bufSize,
 			outputBufDesc->descs[2].buf, outputBufDesc->descs[2].bufSize);
-	yuv2bmp(yuv, width, height);
+	//yuv2bmp(yuv, width, height);
 
 	free(yuv);
 	fflush(fOutFile);
@@ -661,7 +701,7 @@ XDAS_Void TestApp_WriteOutputData(FILE *fOutFile, XDM1_BufDesc * outputBufDesc,
  //  Writing Output Data in a File
  */
 
-XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height)
+XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height,int picNum)
 {
 	int bufsize = outputBufDesc->descs[0].bufSize
 			+ outputBufDesc->descs[1].bufSize + outputBufDesc->descs[2].bufSize;
@@ -686,7 +726,7 @@ XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height)
 			yuv + outputBufDesc->descs[0].bufSize
 					+ outputBufDesc->descs[1].bufSize,
 			outputBufDesc->descs[2].buf, outputBufDesc->descs[2].bufSize);
-	yuv2bmp(yuv, width, height);
+	yuv2bmp(yuv, width, height,picNum);
 
 	free(yuv);
 	return;

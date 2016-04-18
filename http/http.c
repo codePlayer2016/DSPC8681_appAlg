@@ -81,11 +81,6 @@ void http_get()
 	int retVal = 0;
 
 	http_downloadInfo url_infor;
-	uint32_t *pInbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 2 * 4 * 1024);
-	//uint32_t *pOutbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
-	uint32_t *pOutbuffer = (uint32_t *) g_outBuffer;
-	uint32_t *pUrlAddr = pInbuffer;
-	uint32_t *pPicDestAddr = pOutbuffer;
 	uint32_t urlItemNum = 3;
 	uint32_t downLoadPicNum = 0;
 	uint32_t downloadFail = 0;
@@ -98,13 +93,9 @@ void http_get()
 	char *pContentLength = NULL;
 	int nContentLength = 0;
 	int retRecv = 0;
-
 	int i = 1;
-
 	int socketErrorCode = 0;
-
 	int retConnect = 0;
-
 	int sendBufferLength = 0;
 	int recvHttpHeadLength = 0;
 	int recvHttpGetLength = 0;
@@ -115,6 +106,14 @@ void http_get()
 	char urlBuffer[102];
 	uint32_t timeStart = 0;
 	uint32_t timeEnd = 0;
+
+	uint32_t *pInbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 2 * 4 * 1024);
+	//cyx modify
+	uint32_t *pOutbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
+	//uint32_t *pOutbuffer = (uint32_t *) g_outBuffer;
+	uint32_t *pUrlAddr = pInbuffer;
+	uint32_t *pPicDestAddr = pOutbuffer;
+
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	// DSP run ready.
 	pRegisterTable->DPUBootControl |= DSP_RUN_READY;
@@ -619,17 +618,12 @@ void http_get()
 				//retVal = -1;
 				write_uart("wait the pc read.time over\n\r");
 			}
-/////////////////////////////////////////////////////////////////////////////
-			// here is the temp code for: after download a picture, post the semaphore by Semaphore_post()
-			// to process the picture by DPM.
-
-			// NOTE: the picture address (char *)g_outBuffer+4;
-			// NOTE: the picture length is the first 4 bytes of the unsigned char g_outBuffer[0x00400000]; //4M
-
-////////////////////////////////////////////////////////////////////////////
 		}
 		// one com is finished .init the register.
-		gPictureInfor.picNums = 0;
+		sprintf(debugBuf, "11111 gPictureInfor.picNums is %d\r\n",
+				gPictureInfor.picNums);
+		write_uart(debugBuf);
+		//gPictureInfor.picNums = 0;
 		pRegisterTable->getPicNumers = 0;
 		pRegisterTable->failPicNumers = 0;
 		downLoadPicNum = 0;

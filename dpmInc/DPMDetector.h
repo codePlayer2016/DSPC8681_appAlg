@@ -189,7 +189,8 @@ struct DPM2DVector
 struct HOGPyramid
 {
     //! Build HOG pyramid
-	//HOGPyramid();
+	//cyx modify
+
 	HOGPyramid(const int imageW, const int imageH,const int padx,const int pady, const int interval, const int maxFilterSideLen);
 	~HOGPyramid();
     /*!
