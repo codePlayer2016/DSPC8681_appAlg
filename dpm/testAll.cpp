@@ -59,8 +59,8 @@ using namespace zftdt;
 #define TIME_INIT (TSCH = 0, TSCL = 0)
 #define TIME_READ _itoll(TSCH, TSCL)
 #define C6678_PCIEDATA_BASE (0x60000000U)
-
-int testlib(char *bmpfilebuf,int picNum)
+DeformablePartModel *model=NULL;
+int testlib(char *rgbBuf,int width,int height,int picNum)
 {
 
 	long long beg, end;
@@ -94,10 +94,14 @@ int testlib(char *bmpfilebuf,int picNum)
 	int padx= DPM_HOG_PADX,pady= DPM_HOG_PADY,interval=DPM_PYRAMID_LAMBDA;
 	int maxLevels=DPM_PYRAMID_MAX_LEVELS,minSideLen=DPM_PYRAMID_MIN_DETECT_STRIDE;
 
-	IplImage * origImage=cvLoadImageFromArray(bmpfilebuf,0);
+	//IplImage * origImage=cvLoadImageFromArray(bmpfilebuf,0);
+	IplImage * origImage=cvCreateImage(cvSize(width, height), 8,3);
+	origImage->imageData=rgbBuf;
 
-	DeformablePartModel model(modelPath);
-
+	//DeformablePartModel model(modelPath);
+	if(picNum==0){
+		model=new DeformablePartModel(modelPath);
+	}
 	IplImage * normImage = cvCreateImage(
 			cvSize(origImage->width, origImage->height), origImage->depth,
 			origImage->nChannels);
@@ -105,10 +109,9 @@ int testlib(char *bmpfilebuf,int picNum)
    ////////////////////////////////////////////////////
 	write_uart("dsp wait for being triggerred to start dpm\r\n");
 	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
-
   ////////////////////////////////////////////////////
 
-	CvSize filterSize = model.getMaxSizeOfFilters();
+	CvSize filterSize = model->getMaxSizeOfFilters();
 	HOGPyramid pyramid = HOGPyramid(normImage->width, normImage->height, padx,
 			pady, interval, std::max(filterSize.width, filterSize.height));
 	//alloc memory
@@ -130,16 +133,16 @@ int testlib(char *bmpfilebuf,int picNum)
 	for (int i = 0; i < 1; ++i)
 	{
 		beg = TIME_READ;
-		CvSize size = model.getMaxSizeOfFilters();
+		CvSize size = model->getMaxSizeOfFilters();
 
 		int maxFilterSideLen = std::max(size.width, size.height);
 		pyramid.build(normImage,
 				std::max(maxFilterSideLen * DPM_HOG_CELLSIZE, minSideLen),
 				maxLevels); //
-		write_uart("&&&&&&&&&&&\r\n");
-		model.detectFast(normImage, minSideLen, maxLevels, pyramid,
+
+		model->detectFast(normImage, minSideLen, maxLevels, pyramid,
 				rootThreshold, threshold, overlap, fastResults);
-		write_uart("**********\r\n");
+
 		end = TIME_READ;
 
 		timeDetectFast = (end - beg);
