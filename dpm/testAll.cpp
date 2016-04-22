@@ -60,17 +60,7 @@ using namespace zftdt;
 #define TIME_READ _itoll(TSCH, TSCL)
 #define C6678_PCIEDATA_BASE (0x60000000U)
 DeformablePartModel *model=NULL;
-int testlib(char *rgbBuf,int width,int height,int picNum)
-{
-
-	long long beg, end;
-	TIME_INIT;
-
-	long long timeDetectFast;
-	int procCount = 0;
-
-	const string prefix = "";
-#if 1
+void DpmInit(){
 
 	std::string str0(pMotorParam0);
 	std::string str1(pMotorParam1);
@@ -85,9 +75,19 @@ int testlib(char *rgbBuf,int width,int height,int picNum)
 	std::string str10(pMotorParam10);
 	std::string str11(pMotorParam11);
 	const string modelPath=str0+str1+str2+str3+str4+str5+str6+str7+str8+str9+str10+str11;
+	model=new DeformablePartModel(modelPath);
+	g_DPM_memory = new MemAllocDPM();
+}
+int testlib(char *rgbBuf,int width,int height)
+{
 
-#endif
+	long long beg, end;
+	TIME_INIT;
 
+	long long timeDetectFast;
+	int procCount = 0;
+
+	const string prefix = "";
 	double threshold = -0.6;
 	double rootThreshold= 0.9;
 	double overlap= 0.4;
@@ -98,10 +98,6 @@ int testlib(char *rgbBuf,int width,int height,int picNum)
 	IplImage * origImage=cvCreateImage(cvSize(width, height), 8,3);
 	origImage->imageData=rgbBuf;
 
-	//DeformablePartModel model(modelPath);
-	if(picNum==0){
-		model=new DeformablePartModel(modelPath);
-	}
 	IplImage * normImage = cvCreateImage(
 			cvSize(origImage->width, origImage->height), origImage->depth,
 			origImage->nChannels);
@@ -114,12 +110,7 @@ int testlib(char *rgbBuf,int width,int height,int picNum)
 	CvSize filterSize = model->getMaxSizeOfFilters();
 	HOGPyramid pyramid = HOGPyramid(normImage->width, normImage->height, padx,
 			pady, interval, std::max(filterSize.width, filterSize.height));
-	//alloc memory
-	if(picNum==0){
-		write_uart("picNum is 0\r\n");
-		g_DPM_memory = new MemAllocDPM();
 
-	}
 	/**************************************************
 	 output root&DPM result
 	 ***************************************************/
@@ -128,8 +119,6 @@ int testlib(char *rgbBuf,int width,int height,int picNum)
 	static zftdt::DPMVector<Result> fastResults(DPM_MAX_MAXIA);
 	fastResults.size = 0;
 
-
-	//for (int i = 0; i < 100; ++i)
 	for (int i = 0; i < 1; ++i)
 	{
 		beg = TIME_READ;
@@ -148,7 +137,7 @@ int testlib(char *rgbBuf,int width,int height,int picNum)
 		timeDetectFast = (end - beg);
 	}
 	sprintf(debugInfor, "fastResults.size=%d\r\n", fastResults.size);
-		write_uart(debugInfor);
+	write_uart(debugInfor);
 	for (int i = 0; i < fastResults.size; i++)
 	{
 		sprintf(debugInfor, "%d,%d,%d,%d\r\n", fastResults[i].rects[0].x,
@@ -172,7 +161,6 @@ int testlib(char *rgbBuf,int width,int height,int picNum)
 //	if(picNum==0){
 //		delete g_DPM_memory;
 //	}
-
 	return 0;
 }
 

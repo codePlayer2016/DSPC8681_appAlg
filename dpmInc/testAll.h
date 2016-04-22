@@ -16,7 +16,8 @@ extern "C"
 #endif
 
 int TestCase_measureDPM();
-int testlib(char *rgbBuf,int width,int height,int picNum);
+int testlib(char *rgbBuf,int width,int height);
+void DpmInit();
 
 #ifdef __cplusplus
 

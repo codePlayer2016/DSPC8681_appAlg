@@ -66,6 +66,7 @@ extern PicInfor gPictureInfor;
 int8_t *inputSrc = NULL;
 int8_t * inputData;
 int jpegPicLength = 0;
+registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 
 XDAS_Int8 outputData[OUTPUT_BUFFER_SIZE];
 
@@ -73,7 +74,7 @@ XDAS_Int8 refData[OUTPUT_BUFFER_SIZE];
 
 extern void yuv2bmp(unsigned char * YUV, int width, int height, int picNum);
 
-JPEGDEC_Handle handle;
+//JPEGDEC_Handle handle;
 JPEGDEC_Params jpegdecParams;
 JPEGDEC_DynamicParams jpegdecDynamicParams;
 JPEGDEC_Status jpegdecStatus;
@@ -84,475 +85,378 @@ XDAS_UInt32 resizeOption, progressiveDecFlag, RGB_Format, alpha_rgb;
 XDAS_UInt32 outImgRes, numMCU_row, x_org, y_org, x_length, y_length;
 XDAS_Int32 DecodeTask(void);
 
+IIMGDEC1_Fxns *IIMGDEC1Fxns;
+
+/* Algorithm specific handle                                                */
+IALG_Handle handle;
+/* Input/Output Buffer Descriptors                                          */
+XDM1_BufDesc inputBufDesc, outputBufDesc;
+
+JPEGDEC_Params *jpegDecParams = (JPEGDEC_Params*) &jpegdecParams;
+JPEGDEC_DynamicParams *dynamicParams =
+		(JPEGDEC_DynamicParams*) &jpegdecDynamicParams;
+JPEGDEC_Status *status = (JPEGDEC_Status*) &jpegdecStatus;
+JPEGDEC_InArgs *inArgs = (JPEGDEC_InArgs*) &jpegdecInArgs;
+JPEGDEC_OutArgs *outArgs = (JPEGDEC_OutArgs*) &jpegdecOutArgs;
+
 //XDAS_Int32 DecodeTask()
-void DPMMain()
+void JpegInit()
 {
+	jpegDecParams->imgdecParams.size = sizeof(JPEGDEC_Params);
+	// TODO: the two params should be set by parse the jpeg picture.
+	jpegDecParams->imgdecParams.maxHeight = 1500;
+	jpegDecParams->imgdecParams.maxWidth = 2000;
+	jpegDecParams->imgdecParams.maxScans = 15; //?
+	//cyx
+	jpegDecParams->imgdecParams.forceChromaFormat = XDM_RGB;
+	jpegDecParams->imgdecParams.dataEndianness = XDM_BYTE;
+	jpegDecParams->outImgRes = 0;
+	jpegDecParams->progressiveDecFlag = 0;
+
+	dynamicParams->imgdecDynamicParams.size = sizeof(JPEGDEC_DynamicParams);
+	dynamicParams->resizeOption = 2; //2
+	dynamicParams->imgdecDynamicParams.displayWidth = 0;
+	dynamicParams->imgdecDynamicParams.numAU = 0;
+	dynamicParams->numMCU_row = 0;
+	dynamicParams->x_org = 0;
+	dynamicParams->x_org = 0;
+	dynamicParams->x_length = 0;
+	dynamicParams->y_length = 0;
+	dynamicParams->alpha_rgb = 0;
+	dynamicParams->progDisplay = 0;
+	dynamicParams->RGB_Format = 0;
+
+	jpegdecStatus.imgdecStatus.size = sizeof(JPEGDEC_Status);
+	jpegdecInArgs.imgdecInArgs.size = sizeof(JPEGDEC_InArgs);
+	jpegdecOutArgs.imgdecOutArgs.size = sizeof(JPEGDEC_OutArgs);
+
+	if ((handle = (IALG_Handle) ALG_create((IALG_Fxns *) &JPEGDEC_TI_IJPEGDEC,
+			(IALG_Handle) NULL, (IALG_Params *) jpegDecParams)) == NULL)
+	{
+
+	}
+
+}
+void JpegDeInit()
+{
+	/* Delete the Algorithm instance object specified by handle */
+	ALG_delete(handle);
+}
+void DpmDeInit()
+{
+
+}
+void JpegProcess(int picNum)
+{
+	XDAS_Int32 retVal;
+	XDAS_Int32 ScanCount;
+	int byteremain = 0, inputsize = 0;
 	XDAS_UInt32 ii;
-
-	IIMGDEC1_Fxns *IIMGDEC1Fxns;
-
-	JPEGDEC_Params *jpegDecParams = (JPEGDEC_Params*) &jpegdecParams;
-	JPEGDEC_DynamicParams *dynamicParams =
-			(JPEGDEC_DynamicParams*) &jpegdecDynamicParams;
-	JPEGDEC_Status *status = (JPEGDEC_Status*) &jpegdecStatus;
-	JPEGDEC_InArgs *inArgs = (JPEGDEC_InArgs*) &jpegdecInArgs;
-	JPEGDEC_OutArgs *outArgs = (JPEGDEC_OutArgs*) &jpegdecOutArgs;
-
-	/* Algorithm specific handle                                                */
-	IALG_Handle handle;
-
-	/* Input/Output Buffer Descriptors                                          */
-	XDM1_BufDesc inputBufDesc, outputBufDesc;
-
-	/* DMAN3 specific variables */
-
-	/* Input Buffer Management specific variables                               */
-
-	// modify by LHS validBytes is the pic size of the jpeg file.
 	XDAS_Int32 validBytes;
 	XDAS_UInt32 bytesConsumed;
 
-	/* Other variables                                                          */
-	XDAS_Int32 ScanCount, retVal, testVal, countConfigSet;
+	inputSrc = gPictureInfor.picAddr[picNum];
+	jpegPicLength = gPictureInfor.picLength[picNum];
+	inputData = ((char *) inputSrc + 4);
+	validBytes = jpegPicLength;
 
-	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
-	unsigned int picNum = 0;
-	char debugBuf[100];
+	sprintf(debugInfor, "validBytes=%d,inputData address:%x\r\n", validBytes,
+			inputData);
+	write_uart(debugInfor);
+	write_uart("start the jpeg decode and dpm\r\n");
 
-	/* Enable Cache Settings  ELF */
-	int byteremain = 0, inputsize = 0;
-	// this is promise for dpm being after loadurl
-	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-	sprintf(debugBuf, "2222 gPictureInfor.picNums is %d\r\n",
-			gPictureInfor.picNums);
-	write_uart(debugBuf);
+	ScanCount = 1;
 
-	while (picNum < gPictureInfor.picNums)
-	{
-		//inputSrc=g_outBuffer;
-		//jpegPicLength=(int )(*((int *)inputSrc));
-		//cyx modify for process many pictures
-		inputSrc = gPictureInfor.picAddr[picNum];
-		jpegPicLength = gPictureInfor.picLength[picNum];
-		inputData = ((char *) inputSrc + 4);
-		validBytes = jpegPicLength;
-
-		sprintf(debugInfor, "validBytes=%d,inputData address:%x\r\n",
-				validBytes, inputData);
-		write_uart(debugInfor);
-		write_uart("start the jpeg decode and dpm\r\n");
-
-		jpegDecParams->imgdecParams.size = sizeof(JPEGDEC_Params);
-		// TODO: the two params should be set by parse the jpeg picture.
-		jpegDecParams->imgdecParams.maxHeight = 1500;
-		jpegDecParams->imgdecParams.maxWidth = 2000;
-		jpegDecParams->imgdecParams.maxScans = 15; //?
-
-		//jpegDecParams->imgdecParams.forceChromaFormat=0;//XDM_RGB
-		//cyx
-		jpegDecParams->imgdecParams.forceChromaFormat = XDM_RGB;
-		jpegDecParams->imgdecParams.dataEndianness = XDM_BYTE;
-		jpegDecParams->outImgRes = 0;
-		jpegDecParams->progressiveDecFlag = 0;
-
-		dynamicParams->imgdecDynamicParams.size = sizeof(JPEGDEC_DynamicParams);
-		dynamicParams->resizeOption = 2;//2
-		dynamicParams->imgdecDynamicParams.displayWidth = 0;
-		dynamicParams->imgdecDynamicParams.numAU = 0;
-		dynamicParams->numMCU_row = 0;
-		dynamicParams->x_org = 0;
-		dynamicParams->x_org = 0;
-		dynamicParams->x_length = 0;
-		dynamicParams->y_length = 0;
-		dynamicParams->alpha_rgb = 0;
-		dynamicParams->progDisplay = 0;
-		dynamicParams->RGB_Format = 0;
-
-		jpegdecStatus.imgdecStatus.size = sizeof(JPEGDEC_Status);
-		jpegdecInArgs.imgdecInArgs.size = sizeof(JPEGDEC_InArgs);
-		jpegdecOutArgs.imgdecOutArgs.size = sizeof(JPEGDEC_OutArgs);
-
-#if 0	/* Open input file                                                        */
-		finFile = fopen(pPicPath, "rb");
-		if (!finFile)
-		{
-			printf("\n Couldn't open Input file...  %s  ", pPicPath);
-			printf("\n Exiting for this configuration...");
-		}
-		else
-		{
-			validBytes = TestApp_ReadByteStream(finFile);
-			fclose(finFile);
-		}
-#endif
-#if 0	/* Open output/reference file                                             */
-
-		ftestFile = fopen(pYuvPath, "wb");
-		if (!ftestFile)
-		{
-			printf("Couldn't open Test File... %s", pYuvPath);
-			printf("\n Exiting for this configuration...");
-		}
-#endif
-		ScanCount = 1;
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		/* Read the bitstream in the Application Input Buffer                    */
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef ENABLE_CACHE
-		/* Cache clean */
+	/* Cache clean */
 #ifndef MSVC
-		Cache_wbInvAll();
+	Cache_wbInvAll();
 #endif
 #endif
 
-		/* Return if there is an error in reading the file                       */
-		if (validBytes < 0) /* Error condition                                   */
+	dynamicParams->imgdecDynamicParams.decodeHeader = XDM_DECODE_AU;
+
+	inputBufDesc.descs[0].buf = inputData;
+	outputBufDesc.descs[0].buf = outputData;
+
+	/* Assigning Algorithm handle fxns field to IIMGDEC1fxns                  */
+	IIMGDEC1Fxns = (IIMGDEC1_Fxns *) handle->fxns;
+
+	/* Resetting bytesGenerated variable                                     */
+	bytesConsumed = 0;
+
+	dynamicParams->imgdecDynamicParams.decodeHeader = XDM_PARSE_HEADER;
+	/* Activate the Algorithm                                              */
+	handle->fxns->algActivate(handle);
+
+	/* Assign the number of bytes available                                */
+	inArgs->imgdecInArgs.numBytes = validBytes;
+	dynamicParams->frame_numbytes = inArgs->imgdecInArgs.numBytes;
+	inputBufDesc.descs[0].buf = (XDAS_Int8 *) ((XDAS_Int32) inputData
+			+ bytesConsumed);
+
+	/* Get Buffer information                                              */
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETBUFINFO,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	write_uart("contrl GETBUFINFO ok\r\n");
+
+	/* Fill up the buffers as required by algorithm                        */
+	inputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumInBufs;
+	inputBufDesc.descs[0].bufSize =
+			status->imgdecStatus.bufInfo.minInBufSize[0];
+
+	for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumInBufs - 1); ii++)
+	{
+		inputBufDesc.descs[ii + 1].buf = inputBufDesc.descs[ii].buf
+				+ status->imgdecStatus.bufInfo.minInBufSize[ii];
+		inputBufDesc.descs[ii + 1].bufSize =
+				status->imgdecStatus.bufInfo.minInBufSize[ii + 1];
+	}
+
+	outputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumOutBufs;
+	outputBufDesc.descs[0].bufSize =
+			status->imgdecStatus.bufInfo.minOutBufSize[0];
+	for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumOutBufs - 1); ii++)
+	{
+		outputBufDesc.descs[ii + 1].buf = outputBufDesc.descs[ii].buf
+				+ status->imgdecStatus.bufInfo.minOutBufSize[ii];
+		outputBufDesc.descs[ii + 1].bufSize =
+				status->imgdecStatus.bufInfo.minOutBufSize[ii + 1];
+	}
+
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_SETPARAMS,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	write_uart("contrl SETPARAMS ok\r\n");
+
+	/* Basic Algorithm process() call                                      */
+	retVal = IIMGDEC1Fxns->process((IIMGDEC1_Handle) handle,
+			(XDM1_BufDesc *) &inputBufDesc, (XDM1_BufDesc *) &outputBufDesc,
+			(IIMGDEC1_InArgs *) inArgs, (IIMGDEC1_OutArgs *) outArgs);
+
+	write_uart("PROCESS ok\r\n");
+
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETSTATUS,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	write_uart("contrl GETSTATUS ok\r\n");
+
+	dynamicParams->imgdecDynamicParams.decodeHeader = XDM_DECODE_AU;
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_RESET,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	/* DeActivate the Algorithm                                            */
+	handle->fxns->algDeactivate(handle);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	bytesConsumed = 0;
+
+	/* Activate the Algorithm                                              */
+	handle->fxns->algActivate(handle);
+
+	/* Assign the number of bytes available                                */
+	inArgs->imgdecInArgs.numBytes = validBytes;
+	inputBufDesc.descs[0].buf = (XDAS_Int8 *) ((XDAS_Int32) inputData);
+
+	/* Get Buffer information                                              */
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETBUFINFO,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	/* Fill up the buffers as required by algorithm                        */
+	inputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumInBufs;
+	inputBufDesc.descs[0].bufSize =
+			status->imgdecStatus.bufInfo.minInBufSize[0];
+
+	for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumInBufs - 1); ii++)
+	{
+		inputBufDesc.descs[ii + 1].buf = inputBufDesc.descs[ii].buf
+				+ status->imgdecStatus.bufInfo.minInBufSize[ii];
+		inputBufDesc.descs[ii + 1].bufSize =
+				status->imgdecStatus.bufInfo.minInBufSize[ii + 1];
+	}
+
+	outputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumOutBufs;
+	outputBufDesc.descs[0].bufSize =
+			status->imgdecStatus.bufInfo.minOutBufSize[0];
+	for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumOutBufs - 1); ii++)
+	{
+		outputBufDesc.descs[ii + 1].buf = outputBufDesc.descs[ii].buf
+				+ status->imgdecStatus.bufInfo.minOutBufSize[ii];
+		outputBufDesc.descs[ii + 1].bufSize =
+				status->imgdecStatus.bufInfo.minOutBufSize[ii + 1];
+	}
+
+	/* Optional: Set Run time parameters in the Algorithm via control()    */
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_SETPARAMS,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	/* Do-While Loop for Decode Call                                         */
+
+	do
+	{
+
+		byteremain = inArgs->imgdecInArgs.numBytes; // newly added
+		inputsize = byteremain;
+
+		if (dynamicParams->numMCU_row != 0) // newly added for sliced
 		{
-			//printf("Valid Bytes incorrect... Exiting for this configuration...\n");
-
-		}
-		//params->outImgRes = 1;
-
-		/* Create the Algorithm object (instance)                                */
-		//printf("\nCreating Algorithm Instance...");
-		if ((handle = (IALG_Handle) ALG_create(
-				(IALG_Fxns *) &JPEGDEC_TI_IJPEGDEC, (IALG_Handle) NULL,
-				(IALG_Params *) jpegDecParams)) == NULL)
-		{
-			//printf("\nFailed to Create Instance... Exiting for this configuration..");
+			if (byteremain <= (inputsize * dynamicParams->numMCU_row))
+				inArgs->imgdecInArgs.numBytes = byteremain;
+			else
+				inArgs->imgdecInArgs.numBytes = inputsize
+						* dynamicParams->numMCU_row;
+			if (inArgs->imgdecInArgs.numBytes > dynamicParams->frame_numbytes)
+				inArgs->imgdecInArgs.numBytes = dynamicParams->frame_numbytes;
 		}
 
-		dynamicParams->imgdecDynamicParams.decodeHeader = XDM_DECODE_AU;
-
-		inputBufDesc.descs[0].buf = inputData;
-		outputBufDesc.descs[0].buf = outputData;
-
-		/* Assigning Algorithm handle fxns field to IIMGDEC1fxns                  */
-		IIMGDEC1Fxns = (IIMGDEC1_Fxns *) handle->fxns;
-
-		/* Resetting bytesGenerated variable                                     */
-		bytesConsumed = 0;
-
-		dynamicParams->imgdecDynamicParams.decodeHeader = XDM_PARSE_HEADER;
-		/* Activate the Algorithm                                              */
-		handle->fxns->algActivate(handle);
-
-		/* Assign the number of bytes available                                */
-		inArgs->imgdecInArgs.numBytes = validBytes;
-		dynamicParams->frame_numbytes = inArgs->imgdecInArgs.numBytes;
-		inputBufDesc.descs[0].buf = (XDAS_Int8 *) ((XDAS_Int32) inputData
-				+ bytesConsumed);
-
-		/* Get Buffer information                                              */
-		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETBUFINFO,
-				(IIMGDEC1_DynamicParams *) dynamicParams,
-				(IIMGDEC1_Status *) status);
-
-		write_uart("contrl GETBUFINFO ok\r\n");
-
-		/* Fill up the buffers as required by algorithm                        */
-		inputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumInBufs;
-		inputBufDesc.descs[0].bufSize =
-				status->imgdecStatus.bufInfo.minInBufSize[0];
-
-		for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumInBufs - 1); ii++)
-		{
-			inputBufDesc.descs[ii + 1].buf = inputBufDesc.descs[ii].buf
-					+ status->imgdecStatus.bufInfo.minInBufSize[ii];
-			inputBufDesc.descs[ii + 1].bufSize =
-					status->imgdecStatus.bufInfo.minInBufSize[ii + 1];
-		}
-
-		outputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumOutBufs;
-		outputBufDesc.descs[0].bufSize =
-				status->imgdecStatus.bufInfo.minOutBufSize[0];
-		for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumOutBufs - 1);
-				ii++)
-		{
-			outputBufDesc.descs[ii + 1].buf = outputBufDesc.descs[ii].buf
-					+ status->imgdecStatus.bufInfo.minOutBufSize[ii];
-			outputBufDesc.descs[ii + 1].bufSize =
-					status->imgdecStatus.bufInfo.minOutBufSize[ii + 1];
-		}
-#if 0
-		printf("the inputBufNum=%d,size=%d,outputBufNum=%d,size=%d\n",
-				inputBufDesc.numBufs, inputBufDesc.descs[0].bufSize,
-				outputBufDesc.numBufs, outputBufDesc.descs[0].bufSize);
-#endif
-#if 0
-		/* Cache Invalidate for Input Buffer                                   */
-		for(ii=0; ii < inputBufDesc.numBufs; ii++ )
-		{
-			/* Cache Invalidate for Input Buffer                                 */
-#ifndef MSVC
-			Cache_inv(inputBufDesc.descs[ii].buf, validBytes,Cache_Type_ALL, TRUE);
-#endif
-
-		}
-#endif
-		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_SETPARAMS,
-				(IIMGDEC1_DynamicParams *) dynamicParams,
-				(IIMGDEC1_Status *) status);
-
-		write_uart("contrl SETPARAMS ok\r\n");
-
-#if 0
-		printf("\t Width and Height                    = %d, %d \n",
-				(XDAS_UInt32) status->imgdecStatus.outputWidth,
-				(XDAS_UInt32) status->imgdecStatus.outputHeight);
-#endif
-		/* Basic Algorithm process() call                                      */
+		// Basic Algorithm process() call
 		retVal = IIMGDEC1Fxns->process((IIMGDEC1_Handle) handle,
 				(XDM1_BufDesc *) &inputBufDesc, (XDM1_BufDesc *) &outputBufDesc,
 				(IIMGDEC1_InArgs *) inArgs, (IIMGDEC1_OutArgs *) outArgs);
 
-		write_uart("PROCESS ok\r\n");
+		byteremain -= outArgs->imgdecOutArgs.bytesConsumed;
 
+		if (dynamicParams->numMCU_row)
+		{
+			inputBufDesc.descs[0].buf += outArgs->imgdecOutArgs.bytesConsumed;
+			inArgs->imgdecInArgs.numBytes -=
+					outArgs->imgdecOutArgs.bytesConsumed;
+		}
+
+		bytesConsumed += outArgs->imgdecOutArgs.bytesConsumed;
+
+		if (retVal == XDM_EFAIL)
+		{
+			printf("\n Process function returned an Error...  ");
+			break; /* Error Condition: Application may want to break off         */
+		}
+
+		/* Optional: Read status via control()                                 */
 		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETSTATUS,
 				(IIMGDEC1_DynamicParams *) dynamicParams,
 				(IIMGDEC1_Status *) status);
 
-		write_uart("contrl GETSTATUS ok\r\n");
-
-#if 0
-		printf("\t Width and Height                    = %d, %d \n",
-				(XDAS_UInt32) status->imgdecStatus.outputWidth,
-				(XDAS_UInt32) status->imgdecStatus.outputHeight);
-#endif
-		dynamicParams->imgdecDynamicParams.decodeHeader = XDM_DECODE_AU;
-		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_RESET,
-				(IIMGDEC1_DynamicParams *) dynamicParams,
-				(IIMGDEC1_Status *) status);
-
-		/* DeActivate the Algorithm                                            */
-		handle->fxns->algDeactivate(handle);
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		bytesConsumed = 0;
-
-		/* Activate the Algorithm                                              */
-		handle->fxns->algActivate(handle);
-
-		/* Assign the number of bytes available                                */
-		inArgs->imgdecInArgs.numBytes = validBytes;
-		inputBufDesc.descs[0].buf = (XDAS_Int8 *) ((XDAS_Int32) inputData);
-
-		/* Get Buffer information                                              */
-		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETBUFINFO,
-				(IIMGDEC1_DynamicParams *) dynamicParams,
-				(IIMGDEC1_Status *) status);
-
-		/* Fill up the buffers as required by algorithm                        */
-		inputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumInBufs;
-		inputBufDesc.descs[0].bufSize =
-				status->imgdecStatus.bufInfo.minInBufSize[0];
-
-		for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumInBufs - 1); ii++)
+		if (status->mode == 0) // sequential baseline
 		{
-			inputBufDesc.descs[ii + 1].buf = inputBufDesc.descs[ii].buf
-					+ status->imgdecStatus.bufInfo.minInBufSize[ii];
-			inputBufDesc.descs[ii + 1].bufSize =
-					status->imgdecStatus.bufInfo.minInBufSize[ii + 1];
+			outputBufDesc.descs[0].buf += status->bytesgenerated[0];
+			outputBufDesc.descs[1].buf += status->bytesgenerated[1];
+			outputBufDesc.descs[2].buf += status->bytesgenerated[2];
 		}
-
-		outputBufDesc.numBufs = status->imgdecStatus.bufInfo.minNumOutBufs;
-		outputBufDesc.descs[0].bufSize =
-				status->imgdecStatus.bufInfo.minOutBufSize[0];
-		for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumOutBufs - 1);
-				ii++)
+		else if ((status->mode == 1)) // Non interlaeved sequential
 		{
-			outputBufDesc.descs[ii + 1].buf = outputBufDesc.descs[ii].buf
-					+ status->imgdecStatus.bufInfo.minOutBufSize[ii];
-			outputBufDesc.descs[ii + 1].bufSize =
-					status->imgdecStatus.bufInfo.minOutBufSize[ii + 1];
-		}
-#if 0
-		printf("the inputBufNum=%d,size=%d,outputBufNum=%d,size=%d\n",
-				inputBufDesc.numBufs, inputBufDesc.descs[0].bufSize,
-				outputBufDesc.numBufs, outputBufDesc.descs[0].bufSize);
-#endif
-		/* Optional: Set Run time parameters in the Algorithm via control()    */
-		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_SETPARAMS,
-				(IIMGDEC1_DynamicParams *) dynamicParams,
-				(IIMGDEC1_Status *) status);
-#if 0
-		store_outptr1 = outputBufDesc.descs[0].buf;
-		store_outptr2 = outputBufDesc.descs[1].buf;
-		store_outptr3 = outputBufDesc.descs[2].buf;
-#endif
-		/* Do-While Loop for Decode Call                                         */
-#if 1
-		do
-		{
-
-			byteremain = inArgs->imgdecInArgs.numBytes; // newly added
-			inputsize = byteremain;
-
-			if (dynamicParams->numMCU_row != 0) // newly added for sliced
-			{
-				if (byteremain <= (inputsize * dynamicParams->numMCU_row))
-					inArgs->imgdecInArgs.numBytes = byteremain;
-				else
-					inArgs->imgdecInArgs.numBytes = inputsize
-							* dynamicParams->numMCU_row;
-				if (inArgs->imgdecInArgs.numBytes
-						> dynamicParams->frame_numbytes)
-					inArgs->imgdecInArgs.numBytes =
-							dynamicParams->frame_numbytes;
-			}
-
-			// Basic Algorithm process() call
-			retVal = IIMGDEC1Fxns->process((IIMGDEC1_Handle) handle,
-					(XDM1_BufDesc *) &inputBufDesc,
-					(XDM1_BufDesc *) &outputBufDesc, (IIMGDEC1_InArgs *) inArgs,
-					(IIMGDEC1_OutArgs *) outArgs);
-#if 0
-			// Cache Writeback Invalidate for Output Buffers
-			if(outputBufDesc.descs[0].buf != NULL)
-			{
-				for(ii=0; ii < outputBufDesc.numBufs; ii++ )
-				{
-#ifndef MSVC
-					Cache_wbInv(outputBufDesc.descs[ii].buf,
-							outputBufDesc.descs[ii].bufSize, Cache_Type_ALL, TRUE);
-#endif
-				}
-			}
-#endif
-			byteremain -= outArgs->imgdecOutArgs.bytesConsumed;
-
-			if (dynamicParams->numMCU_row)
-			{
-				inputBufDesc.descs[0].buf +=
-						outArgs->imgdecOutArgs.bytesConsumed;
-				inArgs->imgdecInArgs.numBytes -=
-						outArgs->imgdecOutArgs.bytesConsumed;
-			}
-
-			bytesConsumed += outArgs->imgdecOutArgs.bytesConsumed;
-
-			if (retVal == XDM_EFAIL)
-			{
-				printf("\n Process function returned an Error...  ");
-				break; /* Error Condition: Application may want to break off         */
-			}
-
-			/* Optional: Read status via control()                                 */
-			IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETSTATUS,
-					(IIMGDEC1_DynamicParams *) dynamicParams,
-					(IIMGDEC1_Status *) status);
-
-			if (status->mode == 0) // sequential baseline
+			if (jpegDecParams->imgdecParams.forceChromaFormat != 8)
 			{
 				outputBufDesc.descs[0].buf += status->bytesgenerated[0];
 				outputBufDesc.descs[1].buf += status->bytesgenerated[1];
 				outputBufDesc.descs[2].buf += status->bytesgenerated[2];
 			}
-			else if ((status->mode == 1)) // Non interlaeved sequential
-			{
-				if (jpegDecParams->imgdecParams.forceChromaFormat != 8)
-				{
-					outputBufDesc.descs[0].buf += status->bytesgenerated[0];
-					outputBufDesc.descs[1].buf += status->bytesgenerated[1];
-					outputBufDesc.descs[2].buf += status->bytesgenerated[2];
-				}
-			}
-			else if (status->mode != 2)
-			{
-				outputBufDesc.descs[0].buf += status->bytesgenerated[0];
-				outputBufDesc.descs[1].buf += status->bytesgenerated[1];
-				outputBufDesc.descs[2].buf += status->bytesgenerated[2];
-			}
-
-			if ((outArgs->imgdecOutArgs.extendedError != JPEGDEC_SUCCESS))
-			{
-				printf("\n Decoder ERROR %0x \n ",
-						outArgs->imgdecOutArgs.extendedError);
-				break;
-			}
-
-			/* Check for frame ready via display buffer pointers                   */
-			if (outputBufDesc.descs[0].buf != NULL)
-			{
-				//printf("\n Decoded Frame # %d  ", ScanCount);
-				write_uart("jpeg decode is successful\r\n");
-
-				ScanCount++;
-			}
-#if 0
-			if (status->end_of_scan == 1)
-			{
-				outputBufDesc.descs[0].buf = store_outptr1;
-				outputBufDesc.descs[1].buf = store_outptr2;
-				outputBufDesc.descs[2].buf = store_outptr3;
-			}
-#endif
-			if (status->end_of_seq == 1)
-			{
-#if 0
-				outputBufDesc.descs[0].buf = store_outptr1;
-				outputBufDesc.descs[1].buf = store_outptr2;
-				outputBufDesc.descs[2].buf = store_outptr3;
-#endif
-				break;
-			}
-
-		} while (1); /* end of Do-While loop                                    */
-#endif
-		/* DeActivate the Algorithm                                            */
-		handle->fxns->algDeactivate(handle);
-
-		IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETSTATUS,
-				(IIMGDEC1_DynamicParams *) dynamicParams,
-				(IIMGDEC1_Status *) status);
-
-		for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumOutBufs); ii++)
-		{
-
-			outputBufDesc.descs[ii].bufSize =
-					status->imgdecStatus.bufInfo.minOutBufSize[ii];
 		}
+		else if (status->mode != 2)
+		{
+			outputBufDesc.descs[0].buf += status->bytesgenerated[0];
+			outputBufDesc.descs[1].buf += status->bytesgenerated[1];
+			outputBufDesc.descs[2].buf += status->bytesgenerated[2];
+		}
+
+		if ((outArgs->imgdecOutArgs.extendedError != JPEGDEC_SUCCESS))
+		{
+			printf("\n Decoder ERROR %0x \n ",
+					outArgs->imgdecOutArgs.extendedError);
+			break;
+		}
+
+		/* Check for frame ready via display buffer pointers                   */
+		if (outputBufDesc.descs[0].buf != NULL)
+		{
+			//printf("\n Decoded Frame # %d  ", ScanCount);
+			write_uart("jpeg decode is successful\r\n");
+
+			ScanCount++;
+		}
+
+		if (status->end_of_seq == 1)
+		{
+			break;
+		}
+
+	} while (1); /* end of Do-While loop                                    */
+
+	/* DeActivate the Algorithm                                            */
+	handle->fxns->algDeactivate(handle);
+
+	IIMGDEC1Fxns->control((IIMGDEC1_Handle) handle, XDM_GETSTATUS,
+			(IIMGDEC1_DynamicParams *) dynamicParams,
+			(IIMGDEC1_Status *) status);
+
+	for (ii = 0; ii < (status->imgdecStatus.bufInfo.minNumOutBufs); ii++)
+	{
+
+		outputBufDesc.descs[ii].bufSize =
+				status->imgdecStatus.bufInfo.minOutBufSize[ii];
+	}
+	sprintf(debugInfor, "width=%d,heigth=%d\r\n",
+			(status->imgdecStatus.outputWidth),
+			(status->imgdecStatus.outputHeight));
+	write_uart(debugInfor);
+
+	if (ScanCount == 0)
+	{
+		ScanCount = 1; /* To avoid division with zero */
+	}
+	inputSrc = NULL;
+	inputData = NULL;
+
+}
+//cyx
+XDAS_Void DpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height)
+{
+	write_uart("dpm algorith start\r\n");
+	testlib(outputBufDesc->descs[0].buf, width, height);
+	write_uart("dpm algorith over\r\n");
+	return;
+}
+void DPMMain()
+{
+
+	unsigned int picNum = 0;
+
+	// this is promise for dpm being after loadurl
+	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+	sprintf(debugInfor, "gPictureInfor.picNums is %d\r\n",
+			gPictureInfor.picNums);
+	write_uart(debugInfor);
+
+	/* Init jpeg Decode */
+	JpegInit();
+	/* Init DPM Algrithm */
+	DpmInit();
+
+	while (picNum < gPictureInfor.picNums)
+	{
+		/* jpeg Decode to process one picture */
+		JpegProcess(picNum);
 
 		if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
 		{
 
 			if (!dynamicParams->progDisplay)
 			{
-#if 0
-				{
-					/* Write the output frames in the display order                    */
-					TestApp_WriteOutputData(ftestFile, &outputBufDesc,
-							(IIMGDEC1_OutArgs *) outArgs,
-							status->imgdecStatus.outputWidth,
-							status->imgdecStatus.outputHeight);
-				}
-#endif
-				dpmProcess((XDM1_BufDesc *) &outputBufDesc,
+				DpmProcess((XDM1_BufDesc *) &outputBufDesc,
 						status->imgdecStatus.outputWidth,
-						status->imgdecStatus.outputHeight, picNum);
+						status->imgdecStatus.outputHeight);
 			} // dynamicParams.progDisplay
 		}
 
-		/* Output file close                                                     */
-		//fclose(ftestFile);
-		sprintf(debugInfor, "width=%d,heigth=%d\r\n",
-				(status->imgdecStatus.outputWidth),
-				(status->imgdecStatus.outputHeight));
-		write_uart(debugInfor);
-
-		/* Delete the Algorithm instance object specified by handle */
-		ALG_delete(handle);
-
-		if (ScanCount == 0)
-		{
-			ScanCount = 1; /* To avoid division with zero */
-		}
-		inputSrc = NULL;
-		inputData = NULL;
 		picNum++;
 	}
-
+	JpegDeInit();
 	//check clear dpmOver interrupt reg or not
 	if (pRegisterTable->dpmOverStatus & DSP_DPM_CLROVER)
 	{
@@ -564,23 +468,6 @@ void DPMMain()
 
 	Semaphore_post(gSendSemaphore);
 	write_uart("post gSendSemaphore,make http loop can continue\r\n");
-
-#if 0
-	printf("\n --------------  SUMMARY --------------------\n");
-	printf("\t Total number of Scans              = %d\n",
-			(XDAS_UInt32) ScanCount);
-	printf("\t Width and Height                    = %d, %d \n",
-			(XDAS_UInt32) status->imgdecStatus.outputWidth,
-			(XDAS_UInt32) status->imgdecStatus.outputHeight);
-
-	printf(" --------------    END   --------------------\n");
-	/* Read the Config File until it reaches the end of file */
-
-	printf("\n End of execution\n");
-#endif
-	/* Close the config files */
-	//fclose(fConfigFile);
-	//return XDM_EOK;
 } /* main() */
 
 /*
@@ -702,15 +589,7 @@ XDAS_Void TestApp_WriteOutputData(FILE *fOutFile, XDM1_BufDesc * outputBufDesc,
  //  Writing Output Data in a File
  */
 
-//cyx
-XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height,
-		int picNum)
-{
-	write_uart("dpm algorith start\r\n");
-	testlib(outputBufDesc->descs[0].buf,width,height,picNum);
-	write_uart("dpm algorith over\r\n");
-	return;
-}
+
 #if 0
 XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height,
 		int picNum)
