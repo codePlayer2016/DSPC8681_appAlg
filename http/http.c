@@ -109,8 +109,8 @@ void http_get()
 
 	uint32_t *pInbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 2 * 4 * 1024);
 	//cyx modify
-	uint32_t *pOutbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
-	//uint32_t *pOutbuffer = (uint32_t *) g_outBuffer;
+	//uint32_t *pOutbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
+	uint32_t *pOutbuffer = (uint32_t *) g_outBuffer;
 	uint32_t *pUrlAddr = pInbuffer;
 	uint32_t *pPicDestAddr = pOutbuffer;
 

@@ -415,10 +415,10 @@ void JpegProcess(int picNum)
 
 }
 //cyx
-XDAS_Void DpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height)
+XDAS_Void DpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height,int picNum,int maxNum)
 {
 	write_uart("dpm algorith start\r\n");
-	testlib(outputBufDesc->descs[0].buf, width, height);
+	testlib(outputBufDesc->descs[0].buf, width, height,picNum,maxNum);
 	write_uart("dpm algorith over\r\n");
 	return;
 }
@@ -448,15 +448,14 @@ void DPMMain()
 
 			if (!dynamicParams->progDisplay)
 			{
-				DpmProcess((XDM1_BufDesc *) &outputBufDesc,
-						status->imgdecStatus.outputWidth,
-						status->imgdecStatus.outputHeight);
+				DpmProcess((XDM1_BufDesc *) &outputBufDesc,status->imgdecStatus.outputWidth,status->imgdecStatus.outputHeight,picNum,gPictureInfor.picNums);
 			} // dynamicParams.progDisplay
 		}
 
 		picNum++;
 	}
 	JpegDeInit();
+
 	//check clear dpmOver interrupt reg or not
 	if (pRegisterTable->dpmOverStatus & DSP_DPM_CLROVER)
 	{
