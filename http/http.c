@@ -20,10 +20,7 @@ extern Semaphore_Handle gSendSemaphore;
 
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
 extern unsigned char g_outBuffer[0x00400000]; //4M
-//extern unsigned char g_outBuffer[0x400000];//4M
-extern unsigned char g_inBuffer[0x00100000]; //1M value.
-//PicOutInfor gPicOutInfor[40];
-// all picture infor.
+
 PicInfor gPictureInfor;
 
 int g_DownloadFlags = 1;
