@@ -79,6 +79,8 @@ using namespace zftdt;
 DeformablePartModel *model = NULL;
 uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 
+//extern PicInfor gPictureInfor;
+
 static int getSubPicture(picInfo_t *pSrcPic);
 
 void dpmInit()
@@ -194,19 +196,23 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	getSubPicture(&pictureInfo);
 
-	//store subPic to shared zone
-	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
 	memcpy(g_pSendBuffer, (char *) &pictureInfo.nWidth, sizeof(int));
 	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
 
-	memcpy(g_pSendBuffer, (char *) &pictureInfo.nHeigth, sizeof(int));
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
 
-	memcpy(g_pSendBuffer, (char *) &subPicLen, sizeof(int));
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
-
-	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + subPicLen);
+	//store subPic to shared zone
+//	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
+//	memcpy(g_pSendBuffer, (char *) &pictureInfo.nWidth, sizeof(int));
+//	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
+//
+//	memcpy(g_pSendBuffer, (char *) &pictureInfo.nHeigth, sizeof(int));
+//	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
+//
+//	memcpy(g_pSendBuffer, (char *) &subPicLen, sizeof(int));
+//	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
+//
+//	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
+//	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + subPicLen);
 
 	if (picNum == maxNum - 1)
 	{ //set end flag
