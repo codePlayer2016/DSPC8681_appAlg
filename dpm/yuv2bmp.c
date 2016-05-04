@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 //#include <malloc.h>
-#include "testAll.h"
+#include "dpmFunc.h"
 #include "ti/platform/platform.h"
 extern void write_uart(char* msg);
 

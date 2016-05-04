@@ -22,6 +22,7 @@
 #include "jpegdec_ti.h"
 #include "jpegdec.h"
 #include "LinkLayer.h"
+#include "dpmFunc.h"
 
 /* CSL and DMAN3 header files                                                 */
 #include <ti/sysbios/family/c66/Cache.h>
@@ -414,14 +415,14 @@ void JpegProcess(int picNum)
 	inputData = NULL;
 
 }
-//cyx
-XDAS_Void DpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height,int picNum,int maxNum)
-{
-	write_uart("dpm algorith start\r\n");
-	testlib(outputBufDesc->descs[0].buf, width, height,picNum,maxNum);
-	write_uart("dpm algorith over\r\n");
-	return;
-}
+////cyx
+//XDAS_Void DpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height,int picNum,int maxNum)
+//{
+//	write_uart("dpm algorith start\r\n");
+//	testlib(outputBufDesc->descs[0].buf, width, height,picNum,maxNum);
+//	write_uart("dpm algorith over\r\n");
+//	return;
+//}
 void DPMMain()
 {
 
@@ -436,7 +437,7 @@ void DPMMain()
 	/* Init jpeg Decode */
 	JpegInit();
 	/* Init DPM Algrithm */
-	DpmInit();
+	dpmInit();
 
 	while (picNum < gPictureInfor.picNums)
 	{
@@ -446,10 +447,10 @@ void DPMMain()
 		if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
 		{
 
-			if (!dynamicParams->progDisplay)
-			{
-				DpmProcess((XDM1_BufDesc *) &outputBufDesc,status->imgdecStatus.outputWidth,status->imgdecStatus.outputHeight,picNum,gPictureInfor.picNums);
-			} // dynamicParams.progDisplay
+			dpmProcess(outputBufDesc.descs[0].buf,
+					status->imgdecStatus.outputWidth,
+					status->imgdecStatus.outputHeight, picNum,
+					gPictureInfor.picNums);
 		}
 
 		picNum++;
@@ -587,7 +588,6 @@ XDAS_Void TestApp_WriteOutputData(FILE *fOutFile, XDM1_BufDesc * outputBufDesc,
  // TestApp_WriteOutputData
  //  Writing Output Data in a File
  */
-
 
 #if 0
 XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc, int width, int height,

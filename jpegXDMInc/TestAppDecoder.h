@@ -88,7 +88,7 @@ XDAS_Int32  TestApp_ReadByteStream(FILE *fInFile);
 XDAS_Void   TestApp_WriteOutputData(FILE *fOutFile, XDM1_BufDesc * outputBufDesc, 
                                     IIMGDEC1_OutArgs *outArgs,int width ,int height);
 
-XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height,int picNum);
+//XDAS_Void dpmProcess(XDM1_BufDesc * outputBufDesc,int width, int height,int picNum);
 
 
 /*!
