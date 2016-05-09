@@ -49,9 +49,12 @@ typedef struct __tagPicInfor
 {
 	uint8_t *picAddr[100];
 	uint32_t picLength[100];
-	uint8_t picUrls[100][102];
+	uint8_t picUrls[100][120];
+	uint8_t picName[100][40];
 	uint8_t picNums;
 } PicInfor;
+
+uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 // for uart debug
 char debugInfor[100];
 
@@ -439,8 +442,44 @@ void DPMMain()
 	/* Init DPM Algrithm */
 	dpmInit();
 
+	sprintf(debugInfor, "the dsp pic start address is %u\n",(int)g_pSendBuffer);
+	write_uart(debugInfor);
+
 	while (picNum < gPictureInfor.picNums)
 	{
+		//save the url ,picture name and original picture.
+#if 0
+		//memcpy(g_pSendBuffer, gPictureInfor.picUrls[picNum], 120);
+		//g_pSendBuffer = (uint32_t *) (((uint8_t *) g_pSendBuffer) + 120);
+		memcpy(g_pSendBuffer, gPictureInfor.picUrls[picNum], 120);
+		g_pSendBuffer = (g_pSendBuffer + 120);
+
+		memcpy(g_pSendBuffer, gPictureInfor.picName[picNum], 40);
+		g_pSendBuffer = (g_pSendBuffer + 40);
+
+		memcpy(g_pSendBuffer, &(gPictureInfor.picLength[picNum]), 4);
+		g_pSendBuffer = (g_pSendBuffer + 4);
+
+		memcpy(g_pSendBuffer, (gPictureInfor.picAddr[picNum] + 4),
+				gPictureInfor.picLength[picNum]);
+		g_pSendBuffer = (g_pSendBuffer + gPictureInfor.picLength[picNum]);
+
+#endif
+#if 0
+		memcpy(g_pSendBuffer, gPictureInfor.picUrls[picNum], 120);
+		g_pSendBuffer = (g_pSendBuffer + 120 / 4);
+
+		memcpy(g_pSendBuffer, gPictureInfor.picName[picNum], 40);
+		g_pSendBuffer = (g_pSendBuffer + 40 / 4);
+
+		memcpy(g_pSendBuffer, &(gPictureInfor.picLength[picNum]), 4);
+		g_pSendBuffer = (g_pSendBuffer + 4 / 4);
+
+		memcpy(g_pSendBuffer, (gPictureInfor.picAddr[picNum] + 4),
+				gPictureInfor.picLength[picNum]);
+		g_pSendBuffer = (g_pSendBuffer
+				+ (gPictureInfor.picLength[picNum] + 4) / 4);
+#endif
 		/* jpeg Decode to process one picture */
 		JpegProcess(picNum);
 
@@ -451,6 +490,7 @@ void DPMMain()
 					status->imgdecStatus.outputWidth,
 					status->imgdecStatus.outputHeight, picNum,
 					gPictureInfor.picNums);
+
 		}
 
 		picNum++;

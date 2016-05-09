@@ -33,6 +33,15 @@
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
 
+typedef struct __tagPicInfor
+{
+	uint8_t *picAddr[100];
+	uint32_t picLength[100];
+	uint8_t picUrls[100][120];
+	uint8_t picName[100][40];
+	uint8_t picNums;
+} PicInfor;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -63,9 +72,10 @@ typedef struct _tagPicInfo
 } picInfo_t;
 
 picInfo_t pictureInfo;
+extern PicInfor gPictureInfor;
 
 extern char debugInfor[100];
-uint32_t endFlag = 0x55ff;
+uint32_t endFlag = 0xffaa;
 
 using namespace std;
 using namespace zftdt;
@@ -77,8 +87,17 @@ using namespace zftdt;
 #define TIME_READ _itoll(TSCH, TSCL)
 #define C6678_PCIEDATA_BASE (0x60000000U)
 DeformablePartModel *model = NULL;
-uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
+//uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
+extern uint32_t *g_pSendBuffer;
+
+#ifdef __cplusplus
+}
+#endif
 //extern PicInfor gPictureInfor;
 
 static int getSubPicture(picInfo_t *pSrcPic);
@@ -104,6 +123,7 @@ void dpmInit()
 	g_DPM_memory = new MemAllocDPM();
 }
 //int testlib(char *rgbBuf,int width,int height,int picNum,int maxNum)
+//int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,uint32_t **pOutAddr)
 int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 {
 
@@ -199,26 +219,66 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 //	memcpy(g_pSendBuffer, (char *) &pictureInfo.nWidth, sizeof(int));
 //	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
 
-
 	//store subPic to shared zone
 	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
+#if 0
 	memcpy(g_pSendBuffer, (char *) &pictureInfo.nWidth, sizeof(int));
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
+	g_pSendBuffer = (g_pSendBuffer + sizeof(int));
 
 	memcpy(g_pSendBuffer, (char *) &pictureInfo.nHeigth, sizeof(int));
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
+	g_pSendBuffer = (g_pSendBuffer + sizeof(int));
 
 	memcpy(g_pSendBuffer, (char *) &subPicLen, sizeof(int));
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
+	g_pSendBuffer = (g_pSendBuffer + sizeof(int));
 
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
-	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + subPicLen);
+	g_pSendBuffer = (g_pSendBuffer + subPicLen);
 
 	if (picNum == maxNum - 1)
 	{ //set end flag
-		memcpy(g_pSendBuffer, (char *) &endFlag, sizeof(int));
+		memcpy(g_pSendBuffer, (unsigned char *) &endFlag, 1);
+	}
+#endif
+#if 1
+	memcpy(g_pSendBuffer, gPictureInfor.picUrls[picNum], 120);
+	g_pSendBuffer = (g_pSendBuffer + 120 / 4);
+
+	memcpy(g_pSendBuffer, gPictureInfor.picName[picNum], 40);
+	g_pSendBuffer = (g_pSendBuffer + 40 / 4);
+
+	memcpy(g_pSendBuffer, &(gPictureInfor.picLength[picNum]), 4);
+	g_pSendBuffer = (g_pSendBuffer + 4 / 4);
+
+	memcpy(g_pSendBuffer, (gPictureInfor.picAddr[picNum] + 4),
+			gPictureInfor.picLength[picNum]);
+	g_pSendBuffer = (g_pSendBuffer
+			+ (gPictureInfor.picLength[picNum] + 4) / 4);
+
+	memcpy(g_pSendBuffer, &pictureInfo.nWidth, sizeof(int));
+	g_pSendBuffer += 1;
+
+	memcpy(g_pSendBuffer, (char *) &pictureInfo.nHeigth, sizeof(int));
+	g_pSendBuffer += 1;
+
+	memcpy(g_pSendBuffer, (char *) &subPicLen, sizeof(int));
+	g_pSendBuffer += 1;
+
+	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
+//	sprintf(debugInfor, "the %d subpic address is %u\n",(picNum+1),(int)g_pSendBuffer);
+//	write_uart(debugInfor);
+	g_pSendBuffer = (g_pSendBuffer + (subPicLen + 4) / 4);
+
+
+//	sprintf(debugInfor, "subWidth=%u,subHeight=%u,subLength=%d\r\n", pictureInfo.nWidth,pictureInfo.nHeigth,subPicLen);
+//	write_uart(debugInfor);
+
+	if (picNum == maxNum - 1)
+	{ //set end flag
+		memcpy(g_pSendBuffer,  &endFlag, sizeof(int));
 	}
 
+
+#endif
 	free(pictureInfo.pSrcData);
 	free(pictureInfo.pSubData);
 

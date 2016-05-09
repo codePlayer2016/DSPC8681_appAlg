@@ -98,7 +98,8 @@ typedef struct __tagPicInfor
 {
 	uint8_t *picAddr[100];
 	uint32_t picLength[100];
-	uint8_t picUrls[100][102];
+	uint8_t picUrls[100][120];
+	uint8_t picName[100][40];
 	uint8_t picNums;
 } PicInfor;
 //typedef struct __tagPicOutInfor

@@ -106,7 +106,6 @@ void http_get()
 	uint32_t timeStart = 0;
 	uint32_t timeEnd = 0;
 
-
 	//cyx modify
 	//uint32_t *pOutbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 	uint32_t *pOutbuffer = (uint32_t *) g_outBuffer;
@@ -138,7 +137,7 @@ void http_get()
 			sprintf(debugBuf, "urlItemNum=%d\r\n",
 					pRegisterTable->DSP_urlNumsReg);
 			write_uart(debugBuf);
-			pUrlAddr = 	g_pReceiveBuffer;
+			pUrlAddr = g_pReceiveBuffer;
 			pPicDestAddr = pOutbuffer;
 			// polling the PC can be written to.
 			retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_INIT,
@@ -198,6 +197,13 @@ void http_get()
 
 			// parse the url.
 			retVal = http_parseURL(inrequest, &url_infor);
+
+			// save the pic name.
+			strcpy(gPictureInfor.picName[picNum], url_infor.p_fileName);
+			sprintf(debugBuf, "the pic name is %s\r\n",
+					gPictureInfor.picName[picNum]);
+			write_uart(debugBuf);
+
 			if (retVal == 0)
 			{
 
