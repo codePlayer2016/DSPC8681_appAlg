@@ -35,6 +35,10 @@
 #define C6678_PCIEDATA_BASE (0x60000000U)
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 
+#define DSP_DPM_STARTSTATUS  (0x0a0a5500U)
+#define DSP_DPM_STARTCLR  (0x0505aa00U)
+#define DSP_DPM_OVERSTATUS  (0x005a5a00U)
+#define DSP_DPM_OVERCLR  (0x00a5a500U)
 
 /*!
 @struct sTokenMapping 

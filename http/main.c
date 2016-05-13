@@ -60,6 +60,7 @@
 #include "http.h"
 #include "DPMMain.h"
 #include "LinkLayer.h"
+#include "jpegDecoder.h"
 
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
@@ -69,10 +70,8 @@ extern Semaphore_Handle timeoutSemaphore;
 extern Semaphore_Handle g_readSemaphore;
 extern Semaphore_Handle g_writeSemaphore;
 
-
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
-
 
 #define DDR_TEST_START                 0x80000000
 #define DDR_TEST_END                   0x80400000
@@ -81,12 +80,12 @@ extern Semaphore_Handle g_writeSemaphore;
 #define PCIEXpress_Legacy_INTA                 50
 #define PCIEXpress_Legacy_INTB                 50
 /*
-#define PCIE_IRQ_EOI                   0x21800050
-#define PCIE_EP_IRQ_SET		           0x21800064
-#define PCIE_LEGACY_A_IRQ_STATUS       0x21800184
-#define PCIE_LEGACY_A_IRQ_RAW          0x21800180
-#define PCIE_LEGACY_A_IRQ_SetEnable       0x21800188
-*/
+ #define PCIE_IRQ_EOI                   0x21800050
+ #define PCIE_EP_IRQ_SET		           0x21800064
+ #define PCIE_LEGACY_A_IRQ_STATUS       0x21800184
+ #define PCIE_LEGACY_A_IRQ_RAW          0x21800180
+ #define PCIE_LEGACY_A_IRQ_SetEnable       0x21800188
+ */
 
 #ifdef _EVMC6678L_
 #define MAGIC_ADDR     (0x87fffc)
@@ -216,23 +215,34 @@ void write_uart(char* msg)
 /////////////////////////////////////////////////////////////////////////////////////////////
 static void isrHandler(void* handle)
 {
+	char debugInfor[100];
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 	//modify by cyx
 	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
-	if((pRegisterTable->dpmStartStatus) & DSP_DPM_START){
+	sprintf(debugInfor,"******pRegisterTable->dpmStartStatus is %x\r\n",pRegisterTable->dpmStartStatus);
+	write_uart(debugInfor);
+	if((pRegisterTable->dpmStartStatus) & DSP_DPM_STARTSTATUS)
 
+	{
+		write_uart("&&&&&&&&&&&&\r\n");
 		Semaphore_post(gRecvSemaphore);
 		//clear interrupt reg
-		pRegisterTable->dpmStartControl = DSP_DPM_CLR;
+		pRegisterTable->dpmStartControl = 0x0;
+
 	}
-	if((pRegisterTable->readStatus) & DSP_RD_READY){
+	if((pRegisterTable->readStatus)&DSP_RD_READY)
+
+	{
 		Semaphore_post(g_readSemaphore);
 	}
-	if(pRegisterTable->writeStatus & DSP_WT_READY){
+	if((pRegisterTable->writeStatus)&DSP_WT_READY)
+
+	{
 		Semaphore_post(g_writeSemaphore);
 	}
+
 	CpIntc_enableHostInt(0, 3);
 }
 #endif
@@ -448,7 +458,7 @@ int StackTest()
 			TRUE);
 	//modify by cyx
 	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
-				//TRUE);
+	//TRUE);
 	/*
 	 id -- Cp_Intc number
 	 hostInt -- host interrupt number
@@ -480,7 +490,7 @@ int StackTest()
 	//
 
 	//clear interrupt
-	pRegisterTable->dpmStartControl= DSP_DPM_CLR;
+	pRegisterTable->dpmStartControl = DSP_DPM_STARTCLR;
 
 	rc = NC_SystemOpen(NC_PRIORITY_LOW, NC_OPMODE_INTERRUPT);
 	if (rc)

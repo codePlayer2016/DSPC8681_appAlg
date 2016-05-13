@@ -41,6 +41,8 @@ int pollValue(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
 	uint32_t loopCount = 0;
 	uint32_t stopPoll = 0;
 	uint32_t realTimeVal = 0;
+	char debugInfor[100];
+
 
 	for (loopCount = 0; (loopCount < maxPollCount) && (stopPoll == 0);
 			loopCount++)
@@ -67,7 +69,42 @@ int pollValue(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
 
 	return (retVal);
 }
+int pollZero(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
+{
+	int retVal = 0;
+	uint32_t loopCount = 0;
+	uint32_t stopPoll = 0;
+	uint32_t realTimeVal = 0;
+	char debugInfor[100];
 
+
+	for (loopCount = 0; (loopCount < maxPollCount) && (stopPoll == 0);
+			loopCount++)
+	{
+		realTimeVal = DEVICE_REG32_R(pAddress);
+		//realTimeVal = *pAddress;
+		if ((realTimeVal - pollVal < 0.0000001) || (pollVal-realTimeVal < 0.0000001))
+		//if (realTimeVal == pollVal)
+		{
+			stopPoll = 1;
+		}
+		else
+		{
+		}
+	}
+	if (loopCount < maxPollCount)
+	{
+		retVal = 0;
+	}
+	else
+	{
+		retVal = -1;
+	}
+	sprintf(debugInfor, "loopCount=%d\r\n",loopCount);
+	write_uart(debugInfor);
+
+	return (retVal);
+}
 void set_http_package(http_downloadInfo *p_info, char *http_request)
 {
 	sprintf(http_request, "GET %s HTTP/1.1\r\nHOST:%s\r\nAccept:*/*\r\n\r\n",
@@ -116,6 +153,7 @@ void http_get()
 	// DSP run ready.
 	pRegisterTable->DPUBootControl |= DSP_RUN_READY;
 	// DSP can be written by PC.
+	//this code should be put in while(1)
 	pRegisterTable->readControl = DSP_RD_INIT;
 	fdOpenSession(TaskSelf());
 	struct sockaddr_in socket_address;
@@ -123,11 +161,13 @@ void http_get()
 
 #if 1
 
+	//dsp init ready and can read urls.
 	*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
 	write_uart("cyx send interrupt from dsp to pc INT singal\n\r");
 
 	while (1 == g_DownloadFlags)
 	{
+		pRegisterTable->dpmOverControl = 0x00000000;
 		// polling PC to write the url.
 		retVal = pollValue(&(pRegisterTable->readStatus), DSP_RD_READY,
 				0x07ffffff);
@@ -638,6 +678,9 @@ void http_get()
 		// after the PC read,reset this. Note: PC polling this for reading pc's inBuffer
 		pRegisterTable->writeControl = DSP_WT_READY; // pc can't read.
 		//send interrupt
+
+		//pRegisterTable->dpmOverControl= 0x0;
+		// http download picture over.
 		*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
 		write_uart("send the second interrupt from dsp to pc INT singal\n\r");
 		write_uart("wait PC input\r\n");
@@ -645,9 +688,9 @@ void http_get()
 		Semaphore_post(httptodpmSemaphore);
 		write_uart("post the httptodpmSemaphore,and DPMMain can run\r\n");
 ///////////////////////////////////////////////////////////////////////
-		// here is the temp code for:just download one picture and stop the while loop(test dpm process one picture)
+		//stop program to wait dpmmain
 		Semaphore_pend(gSendSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("pend the gSendSemaphore\r\n");
+		write_uart("pend the gSendSemaphore success\r\n");
 
 ///////////////////////////////////////////////////////////////////////
 

@@ -157,6 +157,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 	////////////////////////////////////////////////////
 	write_uart("dsp wait for being triggerred to start dpm\r\n");
 	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
+	//Semaphore_pend(gIntrSemaphore);
 	////////////////////////////////////////////////////
 
 	CvSize filterSize = model->getMaxSizeOfFilters();
@@ -216,9 +217,6 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	getSubPicture(&pictureInfo);
 
-//	memcpy(g_pSendBuffer, (char *) &pictureInfo.nWidth, sizeof(int));
-//	g_pSendBuffer = (uint32_t *) ((uint8_t *) (g_pSendBuffer) + sizeof(int));
-
 	//store subPic to shared zone
 	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
 #if 0
@@ -264,13 +262,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 	g_pSendBuffer += 1;
 
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
-//	sprintf(debugInfor, "the %d subpic address is %u\n",(picNum+1),(int)g_pSendBuffer);
-//	write_uart(debugInfor);
 	g_pSendBuffer = (g_pSendBuffer + (subPicLen + 4) / 4);
-
-
-//	sprintf(debugInfor, "subWidth=%u,subHeight=%u,subLength=%d\r\n", pictureInfo.nWidth,pictureInfo.nHeigth,subPicLen);
-//	write_uart(debugInfor);
 
 	if (picNum == maxNum - 1)
 	{ //set end flag
@@ -287,7 +279,14 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	//cyx add for second picture dpm process
 	write_uart("the second picture dpm process start semphore\r\n");
-	Semaphore_post(gRecvSemaphore);
+	if(picNum== maxNum - 1)
+	{
+		write_uart("the last picture ,and we didnot post semaphore\r\n");
+	}
+	else{
+		Semaphore_post(gRecvSemaphore);
+	}
+
 
 	cvReleaseImage(&normImage);
 	cvReleaseImage(&origImage);
