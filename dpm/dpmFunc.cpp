@@ -156,7 +156,10 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	////////////////////////////////////////////////////
 	write_uart("dsp wait for being triggerred to start dpm\r\n");
+
+
 	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
+	//add polling
 	//Semaphore_pend(gIntrSemaphore);
 	////////////////////////////////////////////////////
 

@@ -440,7 +440,6 @@ void DPMMain()
 	while (1)
 	{
 		// this is promise for dpm being after loadurl
-
 		Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
 		sprintf(debugInfor,
 				"gPictureInfor.picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",

@@ -86,6 +86,8 @@ extern Semaphore_Handle g_writeSemaphore;
  #define PCIE_LEGACY_A_IRQ_RAW          0x21800180
  #define PCIE_LEGACY_A_IRQ_SetEnable       0x21800188
  */
+#define PCIE_IRQ_EOI                   0x21800050
+#define PCIE_LEGACY_A_IRQ_STATUS       0x21800184
 
 #ifdef _EVMC6678L_
 #define MAGIC_ADDR     (0x87fffc)
@@ -218,11 +220,8 @@ static void isrHandler(void* handle)
 	char debugInfor[100];
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
-	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
-	//modify by cyx
-	//CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTB);
-	sprintf(debugInfor,"******pRegisterTable->dpmStartStatus is %x\r\n",pRegisterTable->dpmStartStatus);
-	write_uart(debugInfor);
+
+	write_uart("*********isr get interrupt from pc\r\n");
 	if((pRegisterTable->dpmStartStatus) & DSP_DPM_STARTSTATUS)
 
 	{
@@ -232,16 +231,21 @@ static void isrHandler(void* handle)
 		pRegisterTable->dpmStartControl = 0x0;
 
 	}
-	if((pRegisterTable->readStatus)&DSP_RD_READY)
-
+	if((pRegisterTable->readStatus)& DSP_RD_READY)
 	{
 		Semaphore_post(g_readSemaphore);
+		write_uart("pc write to dspqqqqqqqq\r\n");
 	}
 	if((pRegisterTable->writeStatus)&DSP_WT_READY)
 
 	{
 		Semaphore_post(g_writeSemaphore);
 	}
+
+	//clear PCIE interrupt
+	DEVICE_REG32_W(PCIE_LEGACY_A_IRQ_STATUS,0x1);
+	DEVICE_REG32_W(PCIE_IRQ_EOI,0x0);
+	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 
 	CpIntc_enableHostInt(0, 3);
 }

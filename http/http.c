@@ -43,7 +43,6 @@ int pollValue(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
 	uint32_t realTimeVal = 0;
 	char debugInfor[100];
 
-
 	for (loopCount = 0; (loopCount < maxPollCount) && (stopPoll == 0);
 			loopCount++)
 	{
@@ -77,13 +76,13 @@ int pollZero(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
 	uint32_t realTimeVal = 0;
 	char debugInfor[100];
 
-
 	for (loopCount = 0; (loopCount < maxPollCount) && (stopPoll == 0);
 			loopCount++)
 	{
 		realTimeVal = DEVICE_REG32_R(pAddress);
 		//realTimeVal = *pAddress;
-		if ((realTimeVal - pollVal < 0.0000001) || (pollVal-realTimeVal < 0.0000001))
+		if ((realTimeVal - pollVal < 0.0000001)
+				|| (pollVal - realTimeVal < 0.0000001))
 		//if (realTimeVal == pollVal)
 		{
 			stopPoll = 1;
@@ -100,7 +99,7 @@ int pollZero(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
 	{
 		retVal = -1;
 	}
-	sprintf(debugInfor, "loopCount=%d\r\n",loopCount);
+	sprintf(debugInfor, "loopCount=%d\r\n", loopCount);
 	write_uart(debugInfor);
 
 	return (retVal);
@@ -163,10 +162,11 @@ void http_get()
 
 	//dsp init ready and can read urls.
 	*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
-	write_uart("cyx send interrupt from dsp to pc INT singal\n\r");
+	write_uart("cyx send interrupt from dsp to pc INT singal\r\n");
 
 	while (1 == g_DownloadFlags)
 	{
+		//5.13
 		pRegisterTable->dpmOverControl = 0x00000000;
 		// polling PC to write the url.
 		retVal = pollValue(&(pRegisterTable->readStatus), DSP_RD_READY,
