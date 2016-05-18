@@ -52,7 +52,6 @@ extern "C"
 #include <ti/sysbios/BIOS.h>
 extern void write_uart(char* msg);
 extern Semaphore_Handle gRecvSemaphore;
-//extern Semaphore_Handle gSendSemaphore;
 
 #ifdef __cplusplus
 }
@@ -87,7 +86,6 @@ using namespace zftdt;
 #define TIME_READ _itoll(TSCH, TSCL)
 #define C6678_PCIEDATA_BASE (0x60000000U)
 DeformablePartModel *model = NULL;
-//uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 #ifdef __cplusplus
 extern "C"
 {
@@ -98,7 +96,6 @@ extern uint32_t *g_pSendBuffer;
 #ifdef __cplusplus
 }
 #endif
-//extern PicInfor gPictureInfor;
 
 static int getSubPicture(picInfo_t *pSrcPic);
 
@@ -122,8 +119,6 @@ void dpmInit()
 	model = new DeformablePartModel(modelPath);
 	g_DPM_memory = new MemAllocDPM();
 }
-//int testlib(char *rgbBuf,int width,int height,int picNum,int maxNum)
-//int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,uint32_t **pOutAddr)
 int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 {
 
@@ -157,10 +152,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 	////////////////////////////////////////////////////
 	write_uart("dsp wait for being triggerred to start dpm\r\n");
 
-
 	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
-	//add polling
-	//Semaphore_pend(gIntrSemaphore);
 	////////////////////////////////////////////////////
 
 	CvSize filterSize = model->getMaxSizeOfFilters();
@@ -222,25 +214,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	//store subPic to shared zone
 	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
-#if 0
-	memcpy(g_pSendBuffer, (char *) &pictureInfo.nWidth, sizeof(int));
-	g_pSendBuffer = (g_pSendBuffer + sizeof(int));
-
-	memcpy(g_pSendBuffer, (char *) &pictureInfo.nHeigth, sizeof(int));
-	g_pSendBuffer = (g_pSendBuffer + sizeof(int));
-
-	memcpy(g_pSendBuffer, (char *) &subPicLen, sizeof(int));
-	g_pSendBuffer = (g_pSendBuffer + sizeof(int));
-
-	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
-	g_pSendBuffer = (g_pSendBuffer + subPicLen);
-
-	if (picNum == maxNum - 1)
-	{ //set end flag
-		memcpy(g_pSendBuffer, (unsigned char *) &endFlag, 1);
-	}
-#endif
-#if 1
+	//*************************store original picture*********************************/
 	memcpy(g_pSendBuffer, gPictureInfor.picUrls[picNum], 120);
 	g_pSendBuffer = (g_pSendBuffer + 120 / 4);
 
@@ -252,16 +226,23 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	memcpy(g_pSendBuffer, (gPictureInfor.picAddr[picNum] + 4),
 			gPictureInfor.picLength[picNum]);
-	g_pSendBuffer = (g_pSendBuffer
-			+ (gPictureInfor.picLength[picNum] + 4) / 4);
+	g_pSendBuffer = (g_pSendBuffer + (gPictureInfor.picLength[picNum] + 4) / 4);
 
+	//*************************store sub picture*********************************/
 	memcpy(g_pSendBuffer, &pictureInfo.nWidth, sizeof(int));
 	g_pSendBuffer += 1;
 
-	memcpy(g_pSendBuffer, (char *) &pictureInfo.nHeigth, sizeof(int));
+	memcpy(g_pSendBuffer,  &pictureInfo.nHeigth, sizeof(int));
 	g_pSendBuffer += 1;
 
-	memcpy(g_pSendBuffer, (char *) &subPicLen, sizeof(int));
+
+	memcpy(g_pSendBuffer, &pictureInfo.nXpoint, sizeof(int));
+	g_pSendBuffer += 1;
+
+	memcpy(g_pSendBuffer,  &pictureInfo.nYpoint, sizeof(int));
+	g_pSendBuffer += 1;
+
+	memcpy(g_pSendBuffer,  &subPicLen, sizeof(int));
 	g_pSendBuffer += 1;
 
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
@@ -269,11 +250,9 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	if (picNum == maxNum - 1)
 	{ //set end flag
-		memcpy(g_pSendBuffer,  &endFlag, sizeof(int));
+		memcpy(g_pSendBuffer, &endFlag, sizeof(int));
 	}
 
-
-#endif
 	free(pictureInfo.pSrcData);
 	free(pictureInfo.pSubData);
 
@@ -282,14 +261,14 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	//cyx add for second picture dpm process
 	write_uart("the second picture dpm process start semphore\r\n");
-	if(picNum== maxNum - 1)
+	if (picNum == maxNum - 1)
 	{
 		write_uart("the last picture ,and we didnot post semaphore\r\n");
 	}
-	else{
+	else
+	{
 		Semaphore_post(gRecvSemaphore);
 	}
-
 
 	cvReleaseImage(&normImage);
 	cvReleaseImage(&origImage);

@@ -130,26 +130,6 @@ unsigned char g_outBuffer[0x00400000]; //4M
 unsigned char g_inBuffer[0x00100000]; //url value.
 //add the SEM mode .    add by LHS
 
-/*
- volatile uint8_t *g_pOutBufFlagReg;
- volatile uint8_t *g_pInBufFlagReg;
- volatile uint8_t *g_pPcReadOrWriteReg;
- volatile uint8_t *g_pDspReadOrWriteReg;
- */
-/**********************************************************************
- ************************** Global Variables **************************
- **********************************************************************/
-/* Intc variable declaration */
-/*
- CSL_CPINTC_Handle           hnd;
- CSL_IntcContext             intcContext;
- CSL_IntcEventHandlerRecord  EventHandler[30];
- CSL_IntcObj                 intcObj;
- CSL_IntcHandle              hTest;
- CSL_IntcGlobalEnableState   state;
- CSL_IntcEventHandlerRecord  EventRecord;
- CSL_IntcParam               vectId;
- */
 /* Platform Information - we will read it form the Platform Library */
 platform_info gPlatformInfo;
 
@@ -195,12 +175,7 @@ Uint8 clientMACAddress[6] =
 
 UINT8 DHCP_OPTIONS[] =
 { DHCPOPT_SERVER_IDENTIFIER, DHCPOPT_ROUTER };
-////////////////////////////////////////////////////////////////////////////////////////////////
-//FILE *fp_info = NULL;
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-
-//int input_url_address;			//url address
 
 void write_uart(char* msg)
 {
@@ -221,11 +196,10 @@ static void isrHandler(void* handle)
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
 
-	write_uart("*********isr get interrupt from pc\r\n");
+	write_uart("isr get interrupt from pc\r\n");
 	if((pRegisterTable->dpmStartStatus) & DSP_DPM_STARTSTATUS)
 
 	{
-		write_uart("&&&&&&&&&&&&\r\n");
 		Semaphore_post(gRecvSemaphore);
 		//clear interrupt reg
 		pRegisterTable->dpmStartControl = 0x0;
@@ -234,7 +208,6 @@ static void isrHandler(void* handle)
 	if((pRegisterTable->readStatus)& DSP_RD_READY)
 	{
 		Semaphore_post(g_readSemaphore);
-		write_uart("pc write to dspqqqqqqqq\r\n");
 	}
 	if((pRegisterTable->writeStatus)&DSP_WT_READY)
 
@@ -250,117 +223,7 @@ static void isrHandler(void* handle)
 	CpIntc_enableHostInt(0, 3);
 }
 #endif
-///////////////////////////////////////////////////////////////////////////////////////////
-//void start_boot(void)
-//{
-//	void (*exit)();
-//	uint32_t entry_addr;
-//
-//	/* Clear the boot entry address */
-//	DEVICE_REG32_W(MAGIC_ADDR, 0);
-//
-//	write_uart("start the boot\n\r");
-//	platform_delay(1);
-//
-//	while (1)
-//	{
-//		entry_addr = DEVICE_REG32_R(MAGIC_ADDR);
-//		if (entry_addr != 0)
-//		{
-//			/* jump to the exit point, which will be the entry point for the full IBL */
-//			write_uart("jump to the entry address successful\n\r");
-//			exit = (void (*)()) entry_addr;
-//			(*exit)();
-//		}
-//		platform_delay(1);
-//		//write_uart("jump to the entry address again\n\r");
-//	}
-//}
 
-///*************************************************************************
-// *  @b EVM_init()
-// *
-// *  @n
-// *
-// *  Initializes the platform hardware. This routine is configured to start in
-// *   the evm.cfg configuration file. It is the first routine that BIOS
-// *   calls and is executed before Main is called. If you are debugging within
-// *  CCS the default option in your target configuration file may be to execute
-// *  all code up until Main as the image loads. To debug this you should disable
-// *  that option.
-// *
-// *  @param[in]  None
-// *
-// *  @retval
-// *      None
-// ************************************************************************/
-//void EVM_init()
-//{
-//	platform_init_flags sFlags;
-//	platform_init_config sConfig;
-//	/* Status of the call to initialize the platform */
-//	int32_t pform_status;
-//
-///////////////////////////////////////////////////////////////////init the pll (time module).
-//	memset((void *) &sFlags, 0, sizeof(platform_init_flags));
-//	memset((void *) &sConfig, 0, sizeof(platform_init_config));
-//	sFlags.pll = 0; /* PLLs for clocking    */
-//	sFlags.ddr = 0; /* External memory    */
-//	sFlags.tcsl = 1; /* Time stamp counter   */
-//#ifdef _SCBP6618X_
-//	sFlags.phy = 0; /* Ethernet       */
-//#else
-//	sFlags.phy = 1; /* Ethernet       */
-//#endif
-//	sFlags.ecc = 0; /* Memory ECC       */
-//
-//	sConfig.pllm = 0; /* Use libraries default clock divisor */
-//	pform_status = platform_init(&sFlags, &sConfig);
-//	if (pform_status != Platform_EOK)
-//	{
-//		while (1)
-//		{
-//			(void) platform_led(1, PLATFORM_LED_ON, PLATFORM_USER_LED_CLASS);
-//			(void) platform_delay(50000);
-//			(void) platform_led(1, PLATFORM_LED_OFF, PLATFORM_USER_LED_CLASS);
-//			(void) platform_delay(50000);
-//		}
-//	}
-//
-///////////////////////////////////////////////////////////////////init uart module.
-//	platform_uart_init();
-//	platform_uart_set_baudrate(BOOT_UART_BAUDRATE);
-//#if 1
-///////////////////////////////////////////////////////////////////init the DSP
-//	DEVICE_REG32_W(MAGIC_ADDR, 0);
-//
-//	DEVICE_REG32_W(PCIE_LEGACY_A_IRQ_STATUS, 0x1);
-//	(void) platform_write_configure(PLATFORM_WRITE_ALL);
-//
-//#endif
-////	g_pOutBufFlagReg = DSPWRITE_FLAGE_ADDRESS;
-//	//g_pOutBufFlagReg = (0x81100000 + 0x00200000 - 0x1000);
-////	g_pInBufFlagReg = DSPREAD_FLAGE_ADDRESS;
-////	g_pDspReadOrWriteReg = DSP_READ_OR_WRITE_FLAGE_ADDRESS;
-////	g_pPcReadOrWriteReg = PC_READ_OR_WRITE_FLAGE_ADDRESS;
-//	//(*g_pOutBufFlagReg)==0 means DSP can write.
-//	//*((uint8_t *) (0x81100000 + 0x00200000 - 0x1000)) = 0;
-//	DEVICE_REG32_W(OUT_REG, WINIT);
-//	//(*g_pOutBufFlagReg) = 0;
-//	//(*g_pInBufFlagReg)==0 means DSP can't read.
-//	//*((uint8_t *) (0x81100000 + 0x00200000 - 0x1000 + 0x00000001)) = 0;
-//	DEVICE_REG32_W(IN_REG, RINIT);
-//	//DEVICE_REG32_W(WR_REG, 0);
-//	//(*g_pInBufFlagReg) = 0;
-//	//DSP write buffer has not any operation
-////	(*g_pPcReadOrWriteReg) = 2;
-//	//DSP read buffer has not any operation.
-////	(*g_pDspReadOrWriteReg) = 2;
-//	*((uint32_t *) PCIE_EP_IRQ_SET) = 0x1;
-//}
-//---------------------------------------------------------------------
-// Main Entry Point
-//---------------------------------------------------------------------
 int main()
 {
 	write_uart("Debug: BIOS_start\n\r");
@@ -378,8 +241,7 @@ int StackTest()
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 
 	HANDLE hCfg;
-//	CI_SERVICE_TELNET telnet;
-//	CI_SERVICE_HTTP http;
+
 	QMSS_CFG_T qmss_cfg;
 	CPPI_CFG_T cppi_cfg;
 	/* Initialize the components required to run this application:
@@ -460,9 +322,7 @@ int StackTest()
 	 */
 	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler, 15,
 			TRUE);
-	//modify by cyx
-	//CpIntc_dispatchPlug(PCIEXpress_Legacy_INTB, (CpIntc_FuncPtr) isrHandler, 15,
-	//TRUE);
+
 	/*
 	 id -- Cp_Intc number
 	 hostInt -- host interrupt number
@@ -483,11 +343,6 @@ int StackTest()
 	 */
 	Hwi_create(4, &CpIntc_dispatch, &HwiParam_intc, NULL);
 
-	//
-	// THIS MUST BE THE ABSOLUTE FIRST THING DONE IN AN APPLICATION before
-	//  using the stack!!
-	//
-////////////////////////////////////////////////////////////////
 	//
 	// THIS MUST BE THE ABSOLUTE FIRST THING DONE IN AN APPLICATION before
 	//  using the stack!!

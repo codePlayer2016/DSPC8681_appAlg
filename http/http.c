@@ -416,7 +416,6 @@ void http_get()
 			{
 				write_uart("send the get start\r\n");
 				sendBufferLength = strlen(getRequest);
-				//retVal = httpSendRequest(socket_handle, getRequest,&sendBufferLength, 0);
 				retRecv = send(socket_handle, getRequest, sendBufferLength, 0);
 				if (retRecv == sendBufferLength)
 				{
@@ -439,7 +438,6 @@ void http_get()
 			if (retVal == 0)
 			{
 				write_uart("recv the get start\r\n");
-				//retVal = httpRecvGet(socket_handle, pHttpGetbuffer,&recvHttpGetLength, 0);
 				retVal = httpRecvGetTemp(socket_handle, pHttpGetbuffer,
 						&recvHttpGetLength, 0);
 				if (retVal == 0)
@@ -626,12 +624,9 @@ void http_get()
 			}
 
 			// update the src and dest,urlItemNum.
-			// destAddr+destLength.
 			pPicDestAddr = (uint32_t *) ((uint8_t *) (pPicDestAddr)
 					+ nContentLength + sizeof(int));
-			// urlAddr+urlLength.
 			pUrlAddr = (uint32_t *) (((uint8_t *) pUrlAddr) + 102);
-			// urlNum--.
 			urlItemNum--;
 
 			//close socket.
@@ -679,7 +674,6 @@ void http_get()
 		pRegisterTable->writeControl = DSP_WT_READY; // pc can't read.
 		//send interrupt
 
-		//pRegisterTable->dpmOverControl= 0x0;
 		// http download picture over.
 		*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
 		write_uart("send the second interrupt from dsp to pc INT singal\n\r");
@@ -687,12 +681,11 @@ void http_get()
 
 		Semaphore_post(httptodpmSemaphore);
 		write_uart("post the httptodpmSemaphore,and DPMMain can run\r\n");
-///////////////////////////////////////////////////////////////////////
+
 		//stop program to wait dpmmain
 		Semaphore_pend(gSendSemaphore, BIOS_WAIT_FOREVER);
 		write_uart("pend the gSendSemaphore success\r\n");
 
-///////////////////////////////////////////////////////////////////////
 
 	}
 
@@ -701,8 +694,6 @@ void http_get()
 	// display the download status
 }
 
-//	NC_NetStop(0);
-//	TaskExit();
 
 /***************************************************************************
  *	parse the URL. for example: http://192.168.20.124:8088/1.jpg
