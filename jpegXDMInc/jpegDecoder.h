@@ -39,6 +39,9 @@
 #define DSP_DPM_STARTCLR  (0x0505aa00U)
 #define DSP_DPM_OVERSTATUS  (0x005a5a00U)
 #define DSP_DPM_OVERCLR  (0x00a5a500U)
+#define DSP_DPM_ALLOVER  (0x00005a5aU)
+
+#define URLNUM  (4)
 
 /*!
 @struct sTokenMapping 

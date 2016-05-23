@@ -119,7 +119,7 @@ void dpmInit()
 	model = new DeformablePartModel(modelPath);
 	g_DPM_memory = new MemAllocDPM();
 }
-int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
+int dpmProcess(char *rgbBuf, int width, int height, int picNum,int maxNum,int totalNum)
 {
 
 	long long beg, end;
@@ -248,9 +248,10 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
 	g_pSendBuffer = (g_pSendBuffer + (subPicLen + 4) / 4);
 
-	if (picNum == maxNum - 1)
-	{ //set end flag
+	if ((picNum%maxNum == maxNum - 1) || (picNum==totalNum))
+	{ //every loop last and all of the last pic,we need set end flag
 		memcpy(g_pSendBuffer, &endFlag, sizeof(int));
+		g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 	}
 
 	free(pictureInfo.pSrcData);
@@ -261,7 +262,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum)
 
 	//cyx add for second picture dpm process
 	write_uart("the second picture dpm process start semphore\r\n");
-	if (picNum == maxNum - 1)
+	if ((picNum%maxNum == maxNum - 1) || (picNum==totalNum))
 	{
 		write_uart("the last picture ,and we didnot post semaphore\r\n");
 	}

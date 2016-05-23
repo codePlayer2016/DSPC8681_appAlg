@@ -45,7 +45,8 @@ typedef struct _tagRegisterTable
 	uint32_t failPicNumers;
 	uint32_t dpmOverControl;
 	uint32_t dpmStartControl;
-	uint32_t reserved0[0x1000 / 4 - 7];
+	uint32_t dpmAllOverControl;
+	uint32_t reserved0[0x1000 / 4 - 8];
 
 	// status registers. (4k)
 	uint32_t DPUBootStatus;

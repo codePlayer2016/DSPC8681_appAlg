@@ -19,7 +19,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 		unsigned int **pOutAddr);
 #endif
 #if 1
-int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum);
+int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,int totalNum);
 #endif
 void dpmInit();
 

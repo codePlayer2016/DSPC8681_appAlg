@@ -62,6 +62,7 @@ char debugInfor[100];
 extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
+extern Semaphore_Handle pcFinishReadSemaphore;
 extern unsigned char g_outBuffer[0x00400000]; //4M
 
 extern PicInfor gPictureInfor;
@@ -420,35 +421,26 @@ void DPMMain()
 
 	unsigned int picNum = 0;
 	int retVal = 0;
+	int count = 0;
 	/* Init jpeg Decode */
 	JpegInit();
 	/* Init DPM Algrithm */
 	dpmInit();
 
+	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+	sprintf(debugInfor,
+			"gPictureInfor.picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
+			gPictureInfor.picNums, DSP_DPM_OVERSTATUS,
+			pRegisterTable->dpmOverStatus);
+	write_uart(debugInfor);
+	count = picNum % URLNUM;
+
 	while (1)
 	{
-		// this is promise for dpm being after loadurl
-		Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-		sprintf(debugInfor,
-				"gPictureInfor.picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
-				gPictureInfor.picNums, DSP_DPM_OVERSTATUS,
-				pRegisterTable->dpmOverStatus);
-		write_uart(debugInfor);
+		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
+		write_uart("dsp pend pcFinishReadSemaphore over\r\n");
 
-		retVal = pollValue(&(pRegisterTable->dpmOverStatus), DSP_DPM_OVERSTATUS,
-				0x07ffffff);
-		if (retVal == 0)
-		{
-			pRegisterTable->dpmStartControl = DSP_DPM_STARTCLR;
-			write_uart("poll pc get data success\r\n");
-
-		}
-		else
-		{
-			sprintf(debugInfor, "wait pc read data timeout\r\n");
-			write_uart(debugInfor);
-		}
-		while (picNum < gPictureInfor.picNums)
+		while (count < URLNUM && picNum < gPictureInfor.picNums)
 		{
 			/* jpeg Decode to process one picture */
 			JpegProcess(picNum);
@@ -458,27 +450,40 @@ void DPMMain()
 
 				dpmProcess(outputBufDesc.descs[0].buf,
 						status->imgdecStatus.outputWidth,
-						status->imgdecStatus.outputHeight, picNum,
+						status->imgdecStatus.outputHeight, picNum, URLNUM,
 						gPictureInfor.picNums);
 
 			}
-
 			picNum++;
+			count++;
 		}
 		JpegDeInit();
-		picNum = 0;
-		gPictureInfor.picNums = 0;
-		//check clear dpmOver interrupt reg or not
-		if (pRegisterTable->dpmOverStatus & DSP_DPM_OVERSTATUS)
+		count = 0;
+		//all picture dpm over
+		if (picNum >= gPictureInfor.picNums)
 		{
-			pRegisterTable->dpmOverControl |= DSP_DPM_OVERCLR;
-		}
-		// trigger the interrupt to the pc ,
-		DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
-		write_uart("trigger the host interrupt\r\n");
+			//set reg
+			pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
+			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+			write_uart("dsp have finish all picture dpm process,trigger the host interrupt\r\n");
+			break;
 
-		Semaphore_post(gSendSemaphore);
-		write_uart("post gSendSemaphore,make http loop can continue\r\n");
+		}
+		//part picture dpm over
+		else
+		{
+			//check clear dpmOver interrupt reg or not
+			if (pRegisterTable->dpmOverStatus & DSP_DPM_OVERSTATUS)
+			{
+				pRegisterTable->dpmOverControl |= DSP_DPM_OVERCLR;
+			}
+			// trigger the interrupt to the pc ,
+			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+			write_uart("trigger the host interrupt\r\n");
+
+			//Semaphore_post(gSendSemaphore);
+			//write_uart("post gSendSemaphore,make http loop can continue\r\n");
+		}
 
 	}
 } /* main() */

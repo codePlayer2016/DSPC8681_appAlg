@@ -69,6 +69,7 @@ extern Semaphore_Handle timeoutSemaphore;
 
 extern Semaphore_Handle g_readSemaphore;
 extern Semaphore_Handle g_writeSemaphore;
+extern Semaphore_Handle pcFinishReadSemaphore;
 
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
@@ -176,7 +177,6 @@ Uint8 clientMACAddress[6] =
 UINT8 DHCP_OPTIONS[] =
 { DHCPOPT_SERVER_IDENTIFIER, DHCPOPT_ROUTER };
 
-
 void write_uart(char* msg)
 {
 	uint32_t i;
@@ -196,8 +196,7 @@ static void isrHandler(void* handle)
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
 
-	write_uart("isr get interrupt from pc\r\n");
-	if((pRegisterTable->dpmStartStatus) & DSP_DPM_STARTSTATUS)
+	if ((pRegisterTable->dpmStartStatus) & DSP_DPM_STARTSTATUS)
 
 	{
 		Semaphore_post(gRecvSemaphore);
@@ -205,19 +204,28 @@ static void isrHandler(void* handle)
 		pRegisterTable->dpmStartControl = 0x0;
 
 	}
-	if((pRegisterTable->readStatus)& DSP_RD_READY)
+	if ((pRegisterTable->dpmOverStatus) & DSP_DPM_OVERSTATUS)
+
+	{
+		Semaphore_post(pcFinishReadSemaphore);
+		pRegisterTable->dpmStartControl = DSP_DPM_STARTCLR;
+
+	}
+	if ((pRegisterTable->readStatus) & DSP_RD_READY)
 	{
 		Semaphore_post(g_readSemaphore);
 	}
-	if((pRegisterTable->writeStatus)&DSP_WT_READY)
+	if ((pRegisterTable->writeStatus) & DSP_WT_READY)
 
 	{
 		Semaphore_post(g_writeSemaphore);
 	}
 
+
+
 	//clear PCIE interrupt
-	DEVICE_REG32_W(PCIE_LEGACY_A_IRQ_STATUS,0x1);
-	DEVICE_REG32_W(PCIE_IRQ_EOI,0x0);
+			DEVICE_REG32_W (PCIE_LEGACY_A_IRQ_STATUS,0x1);
+	DEVICE_REG32_W(PCIE_IRQ_EOI, 0x0);
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 
 	CpIntc_enableHostInt(0, 3);
