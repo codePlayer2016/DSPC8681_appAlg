@@ -53,6 +53,7 @@ typedef struct _tagRegisterTable
 	uint32_t readStatus;
 	uint32_t writeStatus;
 	uint32_t DSP_urlNumsReg;
+	uint32_t DSP_modelType;//1:motor 2:car 3:person
 	uint32_t dpmOverStatus;
 	uint32_t dpmStartStatus;
 	uint32_t reserved1[0x1000 / 4 - 6];

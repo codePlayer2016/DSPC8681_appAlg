@@ -150,6 +150,11 @@ void http_get()
 
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	// DSP run ready.
+
+	sprintf(debugBuf, "DPUBootControl=%x\r\n",
+			pRegisterTable->DPUBootControl);
+	write_uart(debugBuf);
+
 	pRegisterTable->DPUBootControl |= DSP_RUN_READY;
 	// DSP can be written by PC.
 	//this code should be put in while(1)
@@ -161,7 +166,7 @@ void http_get()
 #if 1
 
 	//dsp init ready and can read urls.
-	*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
+	//*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
 	write_uart("cyx send interrupt from dsp to pc INT singal\r\n");
 
 	while (1 == g_DownloadFlags)

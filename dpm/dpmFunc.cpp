@@ -6,8 +6,6 @@
  */
 
 #include "DPM.h"
-#include "dpmFunc.h"
-
 #include <string>
 #include <algorithm>
 #include <fstream>
@@ -20,7 +18,9 @@
 #include <c6x.h>
 #include "DPMDetector.h"
 #include "motorcyclist.h"
-//#include "LinkLayer.h"
+#include "carcyclist.h"
+#include "personcyclist.h"
+#include "LinkLayer.h"
 
 #define PCIE_EP_IRQ_SET		 (0x21800064)
 //#define TRUE (1)
@@ -52,6 +52,10 @@ extern "C"
 #include <ti/sysbios/BIOS.h>
 extern void write_uart(char* msg);
 extern Semaphore_Handle gRecvSemaphore;
+
+void dpmInit();
+int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
+		int totalNum,registerTable *pRegisterTable);
 
 #ifdef __cplusplus
 }
@@ -86,6 +90,11 @@ using namespace zftdt;
 #define TIME_READ _itoll(TSCH, TSCL)
 #define C6678_PCIEDATA_BASE (0x60000000U)
 DeformablePartModel *model = NULL;
+
+DeformablePartModel *pMotorModel = NULL;
+DeformablePartModel *pCarModel = NULL;
+DeformablePartModel *pPersonModel = NULL;
+//extern registerTable *pRegisterTable;
 #ifdef __cplusplus
 extern "C"
 {
@@ -102,24 +111,60 @@ static int getSubPicture(picInfo_t *pSrcPic);
 void dpmInit()
 {
 
-	std::string str0(pMotorParam0);
-	std::string str1(pMotorParam1);
-	std::string str2(pMotorParam2);
-	std::string str3(pMotorParam3);
-	std::string str4(pMotorParam4);
-	std::string str5(pMotorParam5);
-	std::string str6(pMotorParam6);
-	std::string str7(pMotorParam7);
-	std::string str8(pMotorParam8);
-	std::string str9(pMotorParam9);
-	std::string str10(pMotorParam10);
-	std::string str11(pMotorParam11);
-	const string modelPath = str0 + str1 + str2 + str3 + str4 + str5 + str6
-			+ str7 + str8 + str9 + str10 + str11;
-	model = new DeformablePartModel(modelPath);
+	std::string strm0(pMotorParam0);
+	std::string strm1(pMotorParam1);
+	std::string strm2(pMotorParam2);
+	std::string strm3(pMotorParam3);
+	std::string strm4(pMotorParam4);
+	std::string strm5(pMotorParam5);
+	std::string strm6(pMotorParam6);
+	std::string strm7(pMotorParam7);
+	std::string strm8(pMotorParam8);
+	std::string strm9(pMotorParam9);
+	std::string strm10(pMotorParam10);
+	std::string strm11(pMotorParam11);
+	const string modelPathMotor = strm0 + strm1 + strm2 + strm3 + strm4 + strm5
+			+ strm6 + strm7 + strm8 + strm9 + strm10 + strm11;
+
+	std::string strc0(pCarParam0);
+	std::string strc1(pCarParam1);
+	std::string strc2(pCarParam2);
+	std::string strc3(pCarParam3);
+	std::string strc4(pCarParam4);
+	std::string strc5(pCarParam5);
+	std::string strc6(pCarParam6);
+	std::string strc7(pCarParam7);
+	std::string strc8(pCarParam8);
+	std::string strc9(pCarParam9);
+	std::string strc10(pCarParam10);
+	std::string strc11(pCarParam11);
+	const string modelPathCar = strc0 + strc1 + strc2 + strc3 + strc4 + strc5
+			+ strc6 + strc7 + strc8 + strc9 + strc10 + strc11;
+#if 1
+	std::string strp0(pPersonParam0);
+	std::string strp1(pPersonParam1);
+	std::string strp2(pPersonParam2);
+	std::string strp3(pPersonParam3);
+	std::string strp4(pPersonParam4);
+	std::string strp5(pPersonParam5);
+	std::string strp6(pPersonParam6);
+	std::string strp7(pPersonParam7);
+	std::string strp8(pPersonParam8);
+	std::string strp9(pPersonParam9);
+	std::string strp10(pPersonParam10);
+	std::string strp11(pPersonParam11);
+	const string modelPathPerson = strp0 + strp1 + strp2 + strp3 + strp4 + strp5
+			+ strp6 + strp7 + strp8 + strp9 + strp10 + strp11;
+
+#endif
+	pMotorModel = new DeformablePartModel(modelPathMotor);
+	pCarModel = new DeformablePartModel(modelPathCar);
+	pPersonModel = new DeformablePartModel(modelPathPerson);
+
 	g_DPM_memory = new MemAllocDPM();
 }
-int dpmProcess(char *rgbBuf, int width, int height, int picNum,int maxNum,int totalNum)
+int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
+		int totalNum,registerTable *pRegisterTable)
 {
 
 	long long beg, end;
@@ -154,6 +199,20 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum,int maxNum,int to
 
 	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
 	////////////////////////////////////////////////////
+	// -m params
+	if (pRegisterTable->DSP_modelType == 1)
+	{
+		model = pMotorModel;
+	}
+	if (pRegisterTable->DSP_modelType == 2)
+	{
+		model = pCarModel;
+	}
+	if (pRegisterTable->DSP_modelType == 3)
+	{
+		model = pPersonModel;
+	}
+	write_uart("after model set");
 
 	CvSize filterSize = model->getMaxSizeOfFilters();
 	HOGPyramid pyramid = HOGPyramid(normImage->width, normImage->height, padx,
@@ -232,23 +291,22 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum,int maxNum,int to
 	memcpy(g_pSendBuffer, &pictureInfo.nWidth, sizeof(int));
 	g_pSendBuffer += 1;
 
-	memcpy(g_pSendBuffer,  &pictureInfo.nHeigth, sizeof(int));
+	memcpy(g_pSendBuffer, &pictureInfo.nHeigth, sizeof(int));
 	g_pSendBuffer += 1;
-
 
 	memcpy(g_pSendBuffer, &pictureInfo.nXpoint, sizeof(int));
 	g_pSendBuffer += 1;
 
-	memcpy(g_pSendBuffer,  &pictureInfo.nYpoint, sizeof(int));
+	memcpy(g_pSendBuffer, &pictureInfo.nYpoint, sizeof(int));
 	g_pSendBuffer += 1;
 
-	memcpy(g_pSendBuffer,  &subPicLen, sizeof(int));
+	memcpy(g_pSendBuffer, &subPicLen, sizeof(int));
 	g_pSendBuffer += 1;
 
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
 	g_pSendBuffer = (g_pSendBuffer + (subPicLen + 4) / 4);
 
-	if ((picNum%maxNum == maxNum - 1) || (picNum==totalNum))
+	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum))
 	{ //every loop last and all of the last pic,we need set end flag
 		memcpy(g_pSendBuffer, &endFlag, sizeof(int));
 		g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
@@ -262,7 +320,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum,int maxNum,int to
 
 	//cyx add for second picture dpm process
 	write_uart("the second picture dpm process start semphore\r\n");
-	if ((picNum%maxNum == maxNum - 1) || (picNum==totalNum))
+	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum))
 	{
 		write_uart("the last picture ,and we didnot post semaphore\r\n");
 	}

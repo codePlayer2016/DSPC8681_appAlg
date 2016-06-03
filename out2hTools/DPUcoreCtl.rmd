@@ -4,6 +4,6 @@
 
 ROMS
 {
-	ROM1:  org = 0x80000000, length = 0x200000, memwidth = 32, romwidth = 32
+	ROM1:  org = 0x80000000, length = 0x300000, memwidth = 32, romwidth = 32
 	files = { DPUcore_temp.btbl }
 }

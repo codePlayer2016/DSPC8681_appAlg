@@ -75,7 +75,8 @@ XDAS_Int8 outputData[OUTPUT_BUFFER_SIZE];
 
 XDAS_Int8 refData[OUTPUT_BUFFER_SIZE];
 
-extern void yuv2bmp(unsigned char * YUV, int width, int height, int picNum);
+//extern void yuv2bmp(unsigned char * YUV, int width, int height, int picNum);
+//int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,int totalNum,registerTable *pRegisterTable);
 
 //JPEGDEC_Handle handle;
 JPEGDEC_Params jpegdecParams;
@@ -422,6 +423,7 @@ void DPMMain()
 	unsigned int picNum = 0;
 	int retVal = 0;
 	int count = 0;
+
 	/* Init jpeg Decode */
 	JpegInit();
 	/* Init DPM Algrithm */
@@ -447,11 +449,10 @@ void DPMMain()
 
 			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
 			{
-
 				dpmProcess(outputBufDesc.descs[0].buf,
 						status->imgdecStatus.outputWidth,
 						status->imgdecStatus.outputHeight, picNum, URLNUM,
-						gPictureInfor.picNums);
+						gPictureInfor.picNums,pRegisterTable);
 
 			}
 			picNum++;
@@ -465,7 +466,8 @@ void DPMMain()
 			//set reg
 			pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
 			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
-			write_uart("dsp have finish all picture dpm process,trigger the host interrupt\r\n");
+			write_uart(
+					"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
 			break;
 
 		}

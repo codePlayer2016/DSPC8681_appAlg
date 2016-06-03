@@ -8,8 +8,8 @@
 				<macros>
 					<stringMacro name="XDC_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdctools_3_23_04_60"/>
 					<stringMacro name="DSPC8681_PDK_INSTALL" type="VALUE_PATH_DIR" value="/opt/ti/pdk_C6678_1_1_2_5"/>
-					<stringMacro name="FRAMEWORK_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/framework_components_3_23_02_16"/>
 					<stringMacro name="XDAIS_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdais_7_21_01_07"/>
+					<stringMacro name="FRAMEWORK_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/framework_components_3_23_02_16"/>
 				</macros>
 				<externalSettings/>
 				<extensions>
@@ -99,7 +99,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="dpm/motorParameter.cpp|dpm/app.cfg|DSPC8681/evm6678/package/build.cfg|DSPC8681_Boad/evm6678/package/build.cfg|myBoard/package/build.cfg|DSPC8681_Boad/package/build.cfg|DSPC8681/evm6678le/package/build.cfg|src/app.cfg|DSPC8681_board/evm6678le/package/build.cfg" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="dpm/DPMMain.cpp|dpm/yuv2bmp.c|dpm/Trimps_LoadImage.cpp|dpm/hog0.c|dpm/motorParameter.cpp|dpm/app.cfg|DSPC8681/evm6678/package/build.cfg|DSPC8681_Boad/evm6678/package/build.cfg|myBoard/package/build.cfg|DSPC8681_Boad/package/build.cfg|DSPC8681/evm6678le/package/build.cfg|src/app.cfg|DSPC8681_board/evm6678le/package/build.cfg" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -110,8 +110,8 @@
 				<macros>
 					<stringMacro name="XDC_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdctools_3_23_04_60"/>
 					<stringMacro name="DSPC8681_PDK_INSTALL" type="VALUE_PATH_DIR" value="/opt/ti/pdk_C6678_1_1_2_5"/>
-					<stringMacro name="XDAIS_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdais_7_21_01_07"/>
 					<stringMacro name="FRAMEWORK_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/framework_components_3_23_02_16"/>
+					<stringMacro name="XDAIS_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdais_7_21_01_07"/>
 				</macros>
 				<externalSettings/>
 				<extensions>
@@ -198,7 +198,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="dpm/app.cfg|DSPC8681/evm6678/package/build.cfg|DSPC8681_Boad/evm6678/package/build.cfg|myBoard/package/build.cfg|DSPC8681_Boad/package/build.cfg|DSPC8681/evm6678le/package/build.cfg|src/app.cfg|DSPC8681_board/evm6678le/package/build.cfg" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="dpm/DPMMain.cpp|dpm/yuv2bmp.c|dpm/Trimps_LoadImage.cpp|dpm/hog0.c|dpm/app.cfg|DSPC8681/evm6678/package/build.cfg|DSPC8681_Boad/evm6678/package/build.cfg|myBoard/package/build.cfg|DSPC8681_Boad/package/build.cfg|DSPC8681/evm6678le/package/build.cfg|src/app.cfg|DSPC8681_board/evm6678le/package/build.cfg" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

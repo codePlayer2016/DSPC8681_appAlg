@@ -5,28 +5,25 @@
  *      Author: julie
  */
 
-#ifndef TESTALL_H_
-#define TESTALL_H_
-
-#ifdef __cplusplus
-
-extern "C"
-{
-
-#endif
-#if 0
-int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
-		unsigned int **pOutAddr);
-#endif
-#if 1
-int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,int totalNum);
-#endif
-void dpmInit();
-
-#ifdef __cplusplus
-
-}
-
-#endif
-
-#endif /* TESTALL_H_ */
+//#ifndef TESTALL_H_
+//#define TESTALL_H_
+//
+//#ifdef __cplusplus
+//
+//extern "C"
+//{
+//
+//#endif
+//
+//
+//int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,int totalNum,registerTable *pRegisterTable);
+//
+//void dpmInit();
+//
+//#ifdef __cplusplus
+//
+//}
+//
+//#endif
+//
+//#endif /* TESTALL_H_ */
