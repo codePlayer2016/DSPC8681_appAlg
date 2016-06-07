@@ -196,6 +196,9 @@ static void isrHandler(void* handle)
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
 
+	sprintf(debugInfor,"pRegisterTable->dpmStartStatus is %x \r\n",
+									pRegisterTable->dpmStartStatus);
+	write_uart(debugInfor);
 	if ((pRegisterTable->dpmStartStatus) & DSP_DPM_STARTSTATUS)
 
 	{

@@ -193,12 +193,6 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	IplImage * normImage = cvCreateImage(
 			cvSize(origImage->width, origImage->height), origImage->depth,
 			origImage->nChannels);
-
-	////////////////////////////////////////////////////
-	write_uart("dsp wait for being triggerred to start dpm\r\n");
-
-	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
-	////////////////////////////////////////////////////
 	// -m params
 	if (pRegisterTable->DSP_modelType == 1)
 	{
@@ -212,6 +206,13 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	{
 		model = pPersonModel;
 	}
+
+	////////////////////////////////////////////////////
+	write_uart("dsp wait for being triggerred to start dpm\r\n");
+
+	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
+	////////////////////////////////////////////////////
+
 	write_uart("after model set");
 
 	CvSize filterSize = model->getMaxSizeOfFilters();
