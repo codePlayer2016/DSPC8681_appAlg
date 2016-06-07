@@ -468,6 +468,7 @@ void DPMMain()
 			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
 			write_uart(
 					"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
+			picNum=0;
 			break;
 
 		}
