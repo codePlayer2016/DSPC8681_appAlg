@@ -144,7 +144,7 @@ static void NetworkOpen();
 static void NetworkClose();
 static void NetworkIPAddr(IPN IPAddr, uint IfIdx, uint fAdd);
 
-extern void http_get();
+extern int http_get();
 //extern void DPMMain();
 // Fun reporting function
 static void ServiceReport(uint Item, uint Status, uint Report, HANDLE hCfgEntry);

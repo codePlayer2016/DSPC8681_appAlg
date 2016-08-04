@@ -11,6 +11,8 @@
 #include "http.h"
 #include "LinkLayer.h"
 
+#define URL_ITEM_LEN (100)
+
 extern Semaphore_Handle g_readSemaphore;
 extern Semaphore_Handle g_writeSemaphore;
 
@@ -19,13 +21,13 @@ extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gSendSemaphore;
 
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
-extern unsigned char g_outBuffer[0x00400000]; //4M
+extern unsigned char g_outBuffer[0x01b00000]; //27M
 
-PicInfor gPictureInfor;
+PicInfor *p_gPictureInfor;
 
 int g_DownloadFlags = 1;
-char pHttpHeadbuffer[1024] = "";
-char pHttpGetbuffer[3 * 1024 * 1024];
+unsigned char pHttpHeadbuffer[1024] = "";
+unsigned char pHttpGetbuffer[3 * 1024 * 1024];
 
 uint32_t *g_pReceiveBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 2 * 4 * 1024);
 extern void write_uart(char* msg);
@@ -111,7 +113,7 @@ void set_http_package(http_downloadInfo *p_info, char *http_request)
 	//write_uart(http_request);
 }
 
-void http_get()
+int http_get()
 {
 	int retVal = 0;
 
@@ -119,10 +121,10 @@ void http_get()
 	uint32_t urlItemNum = 3;
 	uint32_t downLoadPicNum = 0;
 	uint32_t downloadFail = 0;
-	char debugBuf[100];
-	char headRequest[102];
-	char getRequest[102];
-	char inrequest[102];
+	char debugBuf[200];
+	char headRequest[URL_ITEM_LEN];
+	char getRequest[URL_ITEM_LEN];
+	char inrequest[URL_ITEM_LEN];
 	//char *pHttpRequest = NULL;
 	unsigned char *pPicBuffer;
 	char *pContentLength = NULL;
@@ -138,7 +140,7 @@ void http_get()
 
 	int32_t picNum = 0;
 	char *ptrUrl = NULL;
-	char urlBuffer[102];
+	char urlBuffer[URL_ITEM_LEN];
 	uint32_t timeStart = 0;
 	uint32_t timeEnd = 0;
 
@@ -151,8 +153,7 @@ void http_get()
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	// DSP run ready.
 
-	sprintf(debugBuf, "DPUBootControl=%x\r\n",
-			pRegisterTable->DPUBootControl);
+	sprintf(debugBuf, "DPUBootControl=%x\r\n", pRegisterTable->DPUBootControl);
 	write_uart(debugBuf);
 
 	pRegisterTable->DPUBootControl |= DSP_RUN_READY;
@@ -162,6 +163,18 @@ void http_get()
 	fdOpenSession(TaskSelf());
 	struct sockaddr_in socket_address;
 	write_uart("http_get\n\r");
+
+	p_gPictureInfor=(PicInfor *)malloc(sizeof(PicInfor));
+	if(p_gPictureInfor!=NULL)
+	{
+		write_uart("alloc the gPictureInfor finished\r\n");
+	}
+	else
+	{
+		write_uart("alloc the gPictureInfor error\r\n");
+		return(0);
+	}
+	//memset(&gPictureInfor, 0, sizeof(PicInfor));
 
 #if 1
 
@@ -226,7 +239,7 @@ void http_get()
 		}
 
 		write_uart("start download the pci loop\n");
-		gPictureInfor.picNums = 0;
+		p_gPictureInfor->picNums = 0;
 		picNum = 0;
 		// start the down load loop.
 		while (urlItemNum > 0)
@@ -235,8 +248,8 @@ void http_get()
 
 			SOCKET socket_handle = INVALID_SOCKET;
 			// get the url.
-			memset(urlBuffer, 0, 102);
-			memcpy(urlBuffer, pUrlAddr, 102);
+			memset(urlBuffer, 0, URL_ITEM_LEN);
+			memcpy(urlBuffer, pUrlAddr, URL_ITEM_LEN);
 			ptrUrl = urlBuffer;
 			memcpy(inrequest, ptrUrl, (strlen(ptrUrl) + 1));
 
@@ -244,9 +257,9 @@ void http_get()
 			retVal = http_parseURL(inrequest, &url_infor);
 
 			// save the pic name.
-			strcpy(gPictureInfor.picName[picNum], url_infor.p_fileName);
+			strcpy(p_gPictureInfor->picName[picNum], url_infor.p_fileName);
 			sprintf(debugBuf, "the pic name is %s\r\n",
-					gPictureInfor.picName[picNum]);
+					p_gPictureInfor->picName[picNum]);
 			write_uart(debugBuf);
 
 			if (retVal == 0)
@@ -390,8 +403,9 @@ void http_get()
 					nContentLength = atoi(pContentLength + i);
 					// NOTE: nContentLength is the pictureLength;
 					// NOTE: recvHttpHeadLength is the headLength;
-					mmCopy(pPicDestAddr, (char *) &nContentLength, sizeof(int));
-					pPicBuffer = (((uint8_t *) (pPicDestAddr)) + sizeof(int));
+					//mmCopy(pPicDestAddr, &nContentLength, sizeof(int));
+					//pPicBuffer = (((uint8_t *) (pPicDestAddr)) + sizeof(int));
+					pPicBuffer = (uint8_t *) pPicDestAddr;
 					recvHttpGetLength = nContentLength + recvHttpHeadLength;
 					sprintf(debugBuf,
 							"content-length=%d,pPicBuffer address:%x\r\n",
@@ -602,23 +616,25 @@ void http_get()
 			if (retVal == 0)
 			{
 
-				gPictureInfor.picAddr[picNum] = (uint8_t *) pPicDestAddr;
-				gPictureInfor.picLength[picNum] = nContentLength;
-				memcpy(gPictureInfor.picUrls[picNum], inrequest, 102);
-				gPictureInfor.picNums++;
+				p_gPictureInfor->picAddr[picNum] = (uint8_t *) pPicDestAddr;
+				p_gPictureInfor->picLength[picNum] = nContentLength;
+				memcpy(p_gPictureInfor->picUrls[picNum], inrequest, URL_ITEM_LEN);
+				p_gPictureInfor->picNums++;
 
-				sprintf(debugBuf, "download %s,%d bytes\r\n",
-						url_infor.p_fileName, nContentLength);
+				sprintf(debugBuf,
+						"download fileName:%s,fileLength=%d bytes,picNum=%dth,p_gPictureInfor->picNums=%d,pRegisterTable->DSP_urlNumsReg=%d\r\n",
+						url_infor.p_fileName, nContentLength, picNum,
+						p_gPictureInfor->picNums, pRegisterTable->DSP_urlNumsReg);
 				write_uart(debugBuf);
 				downLoadPicNum++;
 				picNum++;
 			} // down load failed.
 			else if (retVal < -2)
 			{
-				gPictureInfor.picAddr[picNum] = NULL;
-				gPictureInfor.picLength[picNum] = 0;
-				memcpy(gPictureInfor.picUrls[picNum], inrequest, 102);
-				gPictureInfor.picNums++;
+				p_gPictureInfor->picAddr[picNum] = NULL;
+				p_gPictureInfor->picLength[picNum] = 0;
+				memcpy(p_gPictureInfor->picUrls[picNum], inrequest, URL_ITEM_LEN);
+				p_gPictureInfor->picNums++;
 
 				downloadFail++;
 				sprintf(debugBuf, "download %s fail retVal=%d\r\n", inrequest,
@@ -629,9 +645,10 @@ void http_get()
 			}
 
 			// update the src and dest,urlItemNum.
-			pPicDestAddr = (uint32_t *) ((uint8_t *) (pPicDestAddr)
-					+ nContentLength + sizeof(int));
-			pUrlAddr = (uint32_t *) (((uint8_t *) pUrlAddr) + 102);
+			//pPicDestAddr = (uint32_t *) ((uint8_t *) (pPicDestAddr)+ nContentLength + sizeof(int));
+			//pPicDestAddr = (pPicDestAddr + (nContentLength + 3) / 4);
+			pPicDestAddr = pPicDestAddr + nContentLength ;
+			pUrlAddr = (pUrlAddr + URL_ITEM_LEN / 4);
 			urlItemNum--;
 
 			//close socket.
@@ -665,10 +682,10 @@ void http_get()
 			}
 		}
 		// one com is finished .init the register.
-		sprintf(debugBuf, "11111 gPictureInfor.picNums is %d\r\n",
-				gPictureInfor.picNums);
+		sprintf(debugBuf, "11111 p_gPictureInfor->picNums is %d\r\n",
+				p_gPictureInfor->picNums);
 		write_uart(debugBuf);
-		//gPictureInfor.picNums = 0;
+		//p_gPictureInfor->picNums = 0;
 		pRegisterTable->getPicNumers = 0;
 		pRegisterTable->failPicNumers = 0;
 		downLoadPicNum = 0;
@@ -691,14 +708,12 @@ void http_get()
 		Semaphore_pend(gSendSemaphore, BIOS_WAIT_FOREVER);
 		write_uart("pend the gSendSemaphore success\r\n");
 
-
 	}
 
 #endif
 	fdCloseSession(TaskSelf());
 	// display the download status
 }
-
 
 /***************************************************************************
  *	parse the URL. for example: http://192.168.20.124:8088/1.jpg

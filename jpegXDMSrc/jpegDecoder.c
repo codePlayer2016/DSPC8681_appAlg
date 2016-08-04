@@ -49,10 +49,10 @@ void write_uart(char* msg)
 typedef struct __tagPicInfor
 {
 	uint8_t *picAddr[100];
-	uint32_t picLength[100];
 	uint8_t picUrls[100][120];
 	uint8_t picName[100][40];
-	uint8_t picNums;
+	uint32_t picLength[100];
+	uint32_t picNums;
 } PicInfor;
 
 uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
@@ -65,9 +65,10 @@ extern Semaphore_Handle gSendSemaphore;
 extern Semaphore_Handle pcFinishReadSemaphore;
 extern unsigned char g_outBuffer[0x00400000]; //4M
 
-extern PicInfor gPictureInfor;
-int8_t *inputSrc = NULL;
-int8_t * inputData;
+//extern PicInfor gPictureInfor;
+extern PicInfor *p_gPictureInfor;
+uint8_t *inputSrc = NULL;
+
 int jpegPicLength = 0;
 registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 
@@ -159,9 +160,11 @@ void JpegProcess(int picNum)
 	XDAS_Int32 validBytes;
 	XDAS_UInt32 bytesConsumed;
 
-	inputSrc = gPictureInfor.picAddr[picNum];
-	jpegPicLength = gPictureInfor.picLength[picNum];
-	inputData = ((char *) inputSrc + 4);
+	uint8_t *inputData = NULL;
+
+	inputData = p_gPictureInfor->picAddr[picNum];
+	jpegPicLength = p_gPictureInfor->picLength[picNum];
+
 	validBytes = jpegPicLength;
 
 	sprintf(debugInfor, "validBytes=%d,inputData address:%x\r\n", validBytes,
@@ -431,18 +434,19 @@ void DPMMain()
 
 	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
 	sprintf(debugInfor,
-			"gPictureInfor.picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
-			gPictureInfor.picNums, DSP_DPM_OVERSTATUS,
+			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
+			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
 			pRegisterTable->dpmOverStatus);
 	write_uart(debugInfor);
 	count = picNum % URLNUM;
 
 	while (1)
 	{
+		write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
 		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
 		write_uart("dsp pend pcFinishReadSemaphore over\r\n");
 
-		while (count < URLNUM && picNum < gPictureInfor.picNums)
+		while (count < URLNUM && picNum < p_gPictureInfor->picNums)
 		{
 			/* jpeg Decode to process one picture */
 			JpegProcess(picNum);
@@ -452,7 +456,7 @@ void DPMMain()
 				dpmProcess(outputBufDesc.descs[0].buf,
 						status->imgdecStatus.outputWidth,
 						status->imgdecStatus.outputHeight, picNum, URLNUM,
-						gPictureInfor.picNums,pRegisterTable);
+						p_gPictureInfor->picNums, pRegisterTable);
 
 			}
 			picNum++;
@@ -461,14 +465,14 @@ void DPMMain()
 		JpegDeInit();
 		count = 0;
 		//all picture dpm over
-		if (picNum >= gPictureInfor.picNums)
+		if (picNum >= p_gPictureInfor->picNums)
 		{
 			//set reg
 			pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
 			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
 			write_uart(
 					"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
-			picNum=0;
+			picNum = 0;
 			break;
 
 		}

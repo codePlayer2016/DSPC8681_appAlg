@@ -36,10 +36,10 @@
 typedef struct __tagPicInfor
 {
 	uint8_t *picAddr[100];
-	uint32_t picLength[100];
 	uint8_t picUrls[100][120];
 	uint8_t picName[100][40];
-	uint8_t picNums;
+	uint32_t picLength[100];
+	uint32_t picNums;
 } PicInfor;
 
 #ifdef __cplusplus
@@ -75,7 +75,8 @@ typedef struct _tagPicInfo
 } picInfo_t;
 
 picInfo_t pictureInfo;
-extern PicInfor gPictureInfor;
+//extern PicInfor gPictureInfor;
+extern PicInfor *p_gPictureInfor;
 
 extern char debugInfor[100];
 uint32_t endFlag = 0xffaa;
@@ -275,18 +276,18 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	//store subPic to shared zone
 	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
 	//*************************store original picture*********************************/
-	memcpy(g_pSendBuffer, gPictureInfor.picUrls[picNum], 120);
+	memcpy(g_pSendBuffer, p_gPictureInfor->picUrls[picNum], 120);
 	g_pSendBuffer = (g_pSendBuffer + 120 / 4);
 
-	memcpy(g_pSendBuffer, gPictureInfor.picName[picNum], 40);
+	memcpy(g_pSendBuffer, p_gPictureInfor->picName[picNum], 40);
 	g_pSendBuffer = (g_pSendBuffer + 40 / 4);
 
-	memcpy(g_pSendBuffer, &(gPictureInfor.picLength[picNum]), 4);
+	memcpy(g_pSendBuffer, &(p_gPictureInfor->picLength[picNum]), 4);
 	g_pSendBuffer = (g_pSendBuffer + 4 / 4);
 
-	memcpy(g_pSendBuffer, (gPictureInfor.picAddr[picNum] + 4),
-			gPictureInfor.picLength[picNum]);
-	g_pSendBuffer = (g_pSendBuffer + (gPictureInfor.picLength[picNum] + 4) / 4);
+	memcpy(g_pSendBuffer, (p_gPictureInfor->picAddr[picNum] + 4),
+			p_gPictureInfor->picLength[picNum]);
+	g_pSendBuffer = (g_pSendBuffer + (p_gPictureInfor->picLength[picNum] + 4) / 4);
 
 	//*************************store sub picture*********************************/
 	memcpy(g_pSendBuffer, &pictureInfo.nWidth, sizeof(int));
