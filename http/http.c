@@ -403,9 +403,9 @@ int http_get()
 					nContentLength = atoi(pContentLength + i);
 					// NOTE: nContentLength is the pictureLength;
 					// NOTE: recvHttpHeadLength is the headLength;
-					//mmCopy(pPicDestAddr, &nContentLength, sizeof(int));
-					//pPicBuffer = (((uint8_t *) (pPicDestAddr)) + sizeof(int));
-					pPicBuffer = (uint8_t *) pPicDestAddr;
+					mmCopy(pPicDestAddr, &nContentLength, sizeof(int));
+					pPicBuffer = (((uint8_t *) (pPicDestAddr)) + sizeof(int));
+					//pPicBuffer = (uint8_t *) pPicDestAddr;
 					recvHttpGetLength = nContentLength + recvHttpHeadLength;
 					sprintf(debugBuf,
 							"content-length=%d,pPicBuffer address:%x\r\n",
@@ -645,9 +645,9 @@ int http_get()
 			}
 
 			// update the src and dest,urlItemNum.
-			//pPicDestAddr = (uint32_t *) ((uint8_t *) (pPicDestAddr)+ nContentLength + sizeof(int));
+			pPicDestAddr = (uint32_t *) ((uint8_t *) (pPicDestAddr)+ nContentLength + sizeof(int));
 			//pPicDestAddr = (pPicDestAddr + (nContentLength + 3) / 4);
-			pPicDestAddr = pPicDestAddr + nContentLength ;
+			//pPicDestAddr = pPicDestAddr + nContentLength ;
 			pUrlAddr = (pUrlAddr + URL_ITEM_LEN / 4);
 			urlItemNum--;
 
