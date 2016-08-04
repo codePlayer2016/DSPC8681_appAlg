@@ -126,7 +126,7 @@ extern Semaphore_Handle pcFinishReadSemaphore;
 //extern int g_flag;
 //extern int g_flag;
 //#pragma DATA_SECTION(g_outBuffer,".WtSpace");
-unsigned char g_outBuffer[0x00400000]; //4M
+//unsigned char g_outBuffer[0x00600000]; //4M
 //#pragma DATA_SECTION(g_inBuffer,".RdSpace");
 unsigned char g_inBuffer[0x00100000]; //url value.
 //add the SEM mode .    add by LHS

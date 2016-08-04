@@ -21,7 +21,10 @@ extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gSendSemaphore;
 
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
-extern unsigned char g_outBuffer[0x01b00000]; //27M
+//extern unsigned char g_outBuffer[0x00600000]; //27M
+#pragma DATA_SECTION(g_outBuffer,".WtSpace");
+unsigned char g_outBuffer[0x00e00000]; //4M-->max size=500M
+//unsigned char *g_outBuffer=NULL; //27M
 
 PicInfor *p_gPictureInfor;
 
@@ -146,7 +149,7 @@ int http_get()
 
 	//cyx modify
 	//uint32_t *pOutbuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
-	uint32_t *pOutbuffer = (uint32_t *) g_outBuffer;
+	uint32_t *pOutbuffer = (uint32_t *)g_outBuffer;
 	uint32_t *pUrlAddr = NULL;
 	uint32_t *pPicDestAddr = pOutbuffer;
 
@@ -174,8 +177,20 @@ int http_get()
 		write_uart("alloc the gPictureInfor error\r\n");
 		return(0);
 	}
+/*
+	g_outBuffer=(unsigned char *)malloc(0x00600000*sizeof(char));
+	if(g_outBuffer!=NULL)
+	{
+		write_uart("alloc the g_outBuffer finished\r\n");
+	}
+	else
+	{
+		write_uart("alloc the g_outBuffer error\r\n");
+		return(0);
+	}
+	pOutbuffer=pPicDestAddr=(uint32_t *)g_outBuffer;
 	//memset(&gPictureInfor, 0, sizeof(PicInfor));
-
+*/
 #if 1
 
 	//dsp init ready and can read urls.
@@ -711,6 +726,8 @@ int http_get()
 	}
 
 #endif
+	free(p_gPictureInfor);
+	//free(g_outBuffer);
 	fdCloseSession(TaskSelf());
 	// display the download status
 }

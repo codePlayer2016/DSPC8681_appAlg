@@ -63,9 +63,9 @@ extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
 extern Semaphore_Handle pcFinishReadSemaphore;
-extern unsigned char g_outBuffer[0x00400000]; //4M
+//extern unsigned char *g_outBuffer; //4M
 
-//extern PicInfor gPictureInfor;
+//extern PicInfor gPictureInfor;//
 extern PicInfor *p_gPictureInfor;
 uint8_t *inputSrc = NULL;
 
@@ -162,9 +162,10 @@ void JpegProcess(int picNum)
 
 	uint8_t *inputData = NULL;
 
-	inputData = p_gPictureInfor->picAddr[picNum];
+	inputSrc = p_gPictureInfor->picAddr[picNum];
 	jpegPicLength = p_gPictureInfor->picLength[picNum];
-
+	inputData=((uint8_t *)inputSrc+4);
+	//inputData=((char*)inputSrc+4);
 	validBytes = jpegPicLength;
 
 	sprintf(debugInfor, "validBytes=%d,inputData address:%x\r\n", validBytes,
@@ -185,6 +186,11 @@ void JpegProcess(int picNum)
 
 	inputBufDesc.descs[0].buf = inputData;
 	outputBufDesc.descs[0].buf = outputData;
+	if(inputBufDesc.descs[0].buf==NULL)
+	{
+		write_uart("input img is error\r\n");
+		//return;
+	}
 
 	/* Assigning Algorithm handle fxns field to IIMGDEC1fxns                  */
 	IIMGDEC1Fxns = (IIMGDEC1_Fxns *) handle->fxns;

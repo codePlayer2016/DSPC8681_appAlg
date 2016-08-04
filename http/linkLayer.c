@@ -56,7 +56,8 @@ extern Semaphore_Handle g_writeSemaphore;
  extern volatile uint8_t *g_pPcReadOrWriteReg;
  extern volatile uint8_t *g_pDspReadOrWriteReg;
  */
-extern unsigned char g_outBuffer[0x00400000]; //4M
+#if 0
+extern unsigned char g_outBuffer[0x00600000]; //20M
 
 extern unsigned char g_inBuffer[0x00100000]; //1M.
 #if 0
@@ -275,3 +276,4 @@ int LinkLayer_Write(uint8_t *pBuffer, int length)
 	//write_uart("DSP write over in DSPwrite\r\n");
 	return (retValue);
 }
+#endif

@@ -87,10 +87,10 @@ typedef struct _tagLinkLayerHandler
 	uint32_t *pWriteConfirmReg;
 	uint32_t *pReadConfirmReg;
 } LinkLayerHandler, *LinkLayerHandlerPtr;
-
+/*
 void LinkLayer_Open(uint32_t *pRegMem);
 int LinkLayer_Read(uint8_t *pBuffer, int length);
 int LinkLayer_Write(uint8_t *pBuffer, int length);
-
+*/
 #endif /* LINKLAYER_H_ */
 
