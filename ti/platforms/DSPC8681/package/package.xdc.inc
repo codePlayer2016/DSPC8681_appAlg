@@ -1,0 +1,13 @@
+package.xdc
+Platform.xdc
+Platform.xs
+package/ti.platforms.DSPC8681.sch
+package/.vers_g180
+package/.vers_r170
+package/.vers_b160
+package/.xdc-z52
+package/ti_platforms_DSPC8681.java
+package/ti_platforms_DSPC8681.class
+package/package_ti.platforms.DSPC8681.c
+package/package.defs.h
+package/ti.platforms.DSPC8681.ccs

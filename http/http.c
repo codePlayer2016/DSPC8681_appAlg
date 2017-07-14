@@ -22,7 +22,7 @@ extern Semaphore_Handle gSendSemaphore;
 
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
 //extern unsigned char g_outBuffer[0x00600000]; //27M
-#pragma DATA_SECTION(g_outBuffer,".WtSpace");
+//#pragma DATA_SECTION(g_outBuffer,".WtSpace");
 unsigned char g_outBuffer[0x00e00000]; //4M-->max size=500M
 //unsigned char *g_outBuffer=NULL; //27M
 

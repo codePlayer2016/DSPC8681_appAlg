@@ -1,0 +1,17 @@
+ti/platforms/DSPC8681/Platform.xdc
+ti/platforms/DSPC8681/Platform.xs
+ti/platforms/DSPC8681/config.bld
+ti/platforms/DSPC8681/package/.vers_b160
+ti/platforms/DSPC8681/package/.vers_g180
+ti/platforms/DSPC8681/package/.vers_r170
+ti/platforms/DSPC8681/package/.xdc-z52
+ti/platforms/DSPC8681/package/build.cfg
+ti/platforms/DSPC8681/package/package.bld.xml
+ti/platforms/DSPC8681/package/package.defs.h
+ti/platforms/DSPC8681/package/package_ti.platforms.DSPC8681.c
+ti/platforms/DSPC8681/package/ti.platforms.DSPC8681.ccs
+ti/platforms/DSPC8681/package/ti.platforms.DSPC8681.sch
+ti/platforms/DSPC8681/package/ti_platforms_DSPC8681.class
+ti/platforms/DSPC8681/package/ti_platforms_DSPC8681.java
+ti/platforms/DSPC8681/package.bld
+ti/platforms/DSPC8681/package.xdc
