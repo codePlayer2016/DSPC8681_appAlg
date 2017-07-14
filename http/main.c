@@ -123,6 +123,10 @@ extern Semaphore_Handle pcFinishReadSemaphore;
 #define WFINISH (0x55aa55aa)
 #define WRFLAG (0xFFAAFFAA)
 
+#define MAGIC_ADDR          		(0x0087FFFC)
+#define GBOOT_MAGIC_ADDR(coreNum)			((1<<28) + ((coreNum)<<24) + (MAGIC_ADDR))
+#define CORE0_MAGIC_ADDR                   0x1087FFFC
+#define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 //extern int g_flag;
 //extern int g_flag;
 //#pragma DATA_SECTION(g_outBuffer,".WtSpace");
@@ -152,6 +156,8 @@ static void ServiceReport(uint Item, uint Status, uint Report, HANDLE hCfgEntry)
 // External references
 extern int dtask_udp_hello();
 extern int g_flag_DMA_finished;
+
+//extern cregister unsigned int DNUM;
 
 //debug infor
 static char debuginfo[100];
@@ -237,8 +243,33 @@ static void isrHandler(void* handle)
 
 int main()
 {
+	char messageBuf[100];
+	sprintf(messageBuf, "CoreNum=%d\n\r",DNUM);
+	write_uart(messageBuf);
+
 	write_uart("Debug: BIOS_start\n\r");
-	BIOS_start();
+
+	//uint32_t *L2RAM_MultiCoreBoot=(uint32_t*)CORE0_MAGIC_ADDR;
+	//*(L2RAM_MultiCoreBoot+DNUM)=0X1;
+	uint32_t L2RAM_MultiCoreBoot = (0x1087ffff-8*4);
+
+	*((uint32_t *)(L2RAM_MultiCoreBoot+DNUM*4)) = 0x00000001;
+
+	//*(volatile uint32_t *)(0x0087fffc)=0xBABEFACE;
+	sprintf(messageBuf, "L2RAM_MultiCoreBoot value is %x\r\n",*((uint32_t *)(L2RAM_MultiCoreBoot+DNUM*4)));
+	write_uart(messageBuf);
+
+	while(1)
+	{
+		;
+	}
+	/**(volatile uint32_t *)(0x0087fffc)=0xBABEFACE;
+	write_uart("hello world!!!\r\n");
+	while(1)
+	{
+		;
+	}*/
+	//BIOS_start();
 }
 
 int StackTest()

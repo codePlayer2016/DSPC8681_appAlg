@@ -197,14 +197,17 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	// -m params
 	if (pRegisterTable->DSP_modelType == 1)
 	{
+		write_uart("here coming into motor detection!!\r\n");
 		model = pMotorModel;
 	}
 	if (pRegisterTable->DSP_modelType == 2)
 	{
+		write_uart("here coming into car detection!!\r\n");
 		model = pCarModel;
 	}
 	if (pRegisterTable->DSP_modelType == 3)
 	{
+		write_uart("here coming into person detection!!\r\n");
 		model = pPersonModel;
 	}
 
