@@ -249,6 +249,10 @@ int main()
 
 	//uint32_t *L2RAM_MultiCoreBoot=(uint32_t*)CORE0_MAGIC_ADDR;
 	//*(L2RAM_MultiCoreBoot+DNUM)=0X1;
+	if (DNUM == 0)
+	{
+		write_uart("core0 running\r\n");
+	}
 	uint32_t L2RAM_MultiCoreBoot = (0x1087ffff - 8 * 4);
 
 	*((uint32_t *) (L2RAM_MultiCoreBoot + DNUM * 4)) = 0x00000001;

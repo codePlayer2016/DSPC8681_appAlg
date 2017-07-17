@@ -1,12 +1,13 @@
-export CGT_INSTALL_DIR=/opt/ti/ccsv5/tools/compiler/c6000_7.4.16
+export CGT_INSTALL_DIR=/opt/ti/ccsv5/tools/compiler/c6000_7.4.4
 export TARGET=6678
 export ENDIAN=little
 
 # project name.
 DSPPRJ=DSPC8681_framework
+DSP_OUT_FILE=DSPC8681_appAlg
 
 # input file name.
-SRCOUTFILE=${DSPPRJ}.out
+SRCOUTFILE=${DSP_OUT_FILE}.out
 
 # output file name.
 OUTPUTFILE=DPUCore_6678.h
