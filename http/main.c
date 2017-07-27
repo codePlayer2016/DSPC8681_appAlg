@@ -183,6 +183,8 @@ Uint8 clientMACAddress[6] =
 UINT8 DHCP_OPTIONS[] =
 { DHCPOPT_SERVER_IDENTIFIER, DHCPOPT_ROUTER };
 
+#define DEBUG_PROCESS 1
+#ifdef DEBUG_PROCESS
 void write_uart(char* msg)
 {
 	uint32_t i;
@@ -194,6 +196,11 @@ void write_uart(char* msg)
 		platform_uart_write(msg[i]);
 	}
 }
+#elif
+void write_uart(char *msg)
+{
+}
+#endif
 #if 1
 /////////////////////////////////////////////////////////////////////////////////////////////
 static void isrHandler(void* handle)
@@ -257,9 +264,14 @@ int main()
 
 	*((uint32_t *) (L2RAM_MultiCoreBoot + DNUM * 4)) = 0x00000001;
 
-	//*(volatile uint32_t *)(0x0087fffc)=0xBABEFACE;
-	//sprintf(messageBuf, "L2RAM_MultiCoreBoot value is %x\r\n",*((uint32_t *)(L2RAM_MultiCoreBoot+DNUM*4)));
-	//write_uart(messageBuf);
+	//TODO:
+	// create the Task ,receive the input picture frome the core0.
+	// create the Task ,process the picture.
+	// create the Task ,output the picture.
+
+
+
+
 
 	while (1)
 	{
@@ -442,7 +454,7 @@ int StackTest()
 
 		//sprintf(LocalIPAddr, "192.168.1.%d", get_DSP_id() + 101);
 		// Setup manual IP address
-		bzero( &NA, sizeof(NA));
+		bzero(&NA, sizeof(NA));
 		NA.IPAddr = inet_addr(LocalIPAddr);
 		NA.IPMask = inet_addr(LocalIPMask);
 		strcpy(NA.Domain, DomainName);
@@ -455,7 +467,7 @@ int StackTest()
 		// Add the default gateway. Since it is the default, the
 		// destination address and mask are both zero (we go ahead
 		// and show the assignment for clarity).
-		bzero( &RT, sizeof(RT));
+		bzero(&RT, sizeof(RT));
 		RT.IPDestAddr = 0;
 		RT.IPDestMask = 0;
 		RT.IPGateAddr = inet_addr(GatewayIP);
@@ -900,7 +912,7 @@ static void NetworkIPAddr(IPN IPAddr, uint IfIdx, uint fAdd)
 	if (fAdd)
 	{
 		write_uart("Network Added: \r\n");
-		IPTmp = ntohl( IPAddr );
+		IPTmp = ntohl(IPAddr);
 		sprintf(ipInfor, "%d.%d.%d.%d", (UINT8) (IPTmp >> 24) & 0xFF,
 				(UINT8) (IPTmp >> 16) & 0xFF, (UINT8) (IPTmp >> 8) & 0xFF,
 				(UINT8) IPTmp & 0xFF);
