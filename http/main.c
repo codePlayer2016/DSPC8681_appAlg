@@ -260,7 +260,7 @@ int main()
 	{
 		write_uart("core0 running\r\n");
 	}
-	uint32_t L2RAM_MultiCoreBoot = (0x1087ffff - 8 * 4);
+	uint32_t L2RAM_MultiCoreBoot = (0x1087ffff - 8 * sizeof(uint32_t));
 
 	*((uint32_t *) (L2RAM_MultiCoreBoot + DNUM * 4)) = 0x00000001;
 
@@ -268,10 +268,6 @@ int main()
 	// create the Task ,receive the input picture frome the core0.
 	// create the Task ,process the picture.
 	// create the Task ,output the picture.
-
-
-
-
 
 	while (1)
 	{
