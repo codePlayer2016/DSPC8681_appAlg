@@ -52,7 +52,7 @@ metaonly module Platform inherits xdc.platform.IPlatform {
                      {
                         name: "DDR0",
                         base: 0x80000000,                    
-                        len: 0x10000000,                    
+                        len: 0x02e00000,                    
                         space: "code/data",
                         access: "RWX",
                      }
@@ -116,6 +116,24 @@ metaonly module Platform inherits xdc.platform.IPlatform {
                         name: "DDR7",
                         base: 0xf000000,                    
                         len: 0x10000000,                    
+                        space: "code/data",
+                        access: "RWX",
+                     }
+                ],
+                ["InBuffer", 
+                     {
+                        name: "InBuffer",
+                        base: 0x82e00000,                    
+                        len: 0x00e00000,                    
+                        space: "code/data",
+                        access: "RWX",
+                     }
+                ],
+                ["outBuffer", 
+                     {
+                        name: "outBuffer",
+                        base: 0x83c00000,                    
+                        len: 0x0c400000,                    
                         space: "code/data",
                         access: "RWX",
                      }

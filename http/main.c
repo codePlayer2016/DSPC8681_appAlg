@@ -174,6 +174,30 @@ char *DomainName = "demo.net"; // Not used when using DHCP
 char *HostName = "tidsp";
 char *DNSServer = "0.0.0.0";
 
+//------------------------------------------------------------------
+// 512K*4*7=0x00e00000
+#define inBufSize (0x00200000)
+#pragma DATA_SECTION(coreNInBuf,".coreNInBuf");
+unsigned char coreNInBuf[0x00e00000];
+unsigned char *pCore1InBuf=coreNInBuf;
+unsigned char *pCore2InBuf=coreNInBuf+inBufSize;
+unsigned char *pCore3InBuf=coreNInBuf+(inBufSize*2);
+unsigned char *pCore4InBuf=coreNInBuf+(inBufSize*3);
+unsigned char *pCore5InBuf=coreNInBuf+(inBufSize*4);
+unsigned char *pCore6InBuf=coreNInBuf+(inBufSize*5);
+unsigned char *pCore7InBuf=coreNInBuf+(inBufSize*6);
+
+// 7M*4*7=196M
+#define OutBufSize (0x01C00000)
+#pragma DATA_SECTION(coreNOutBuf,".coreNOutBuf");
+unsigned char coreNOutBuf[0x0c400000];
+unsigned char *pCore1OutBuf=coreNOutBuf;
+unsigned char *pCore2OutBuf=coreNOutBuf+OutBufSize;
+unsigned char *pCore3OutBuf=coreNOutBuf+(OutBufSize*2);
+unsigned char *pCore4OutBuf=coreNOutBuf+(OutBufSize*3);
+unsigned char *pCore5OutBuf=coreNOutBuf+(OutBufSize*4);
+unsigned char *pCore6OutBuf=coreNOutBuf+(OutBufSize*5);
+unsigned char *pCore7OutBuf=coreNOutBuf+(OutBufSize*6);
 // Simulator EMAC Switch does not handle ALE_LEARN mode, so please configure the
 // MAC address of the PC where you want to launch the webpages and initiate PING to NDK */
 
@@ -248,31 +272,23 @@ static void isrHandler(void* handle)
 
 int main()
 {
-	//char messageBuf[100];
-	//sprintf(messageBuf, "CoreNum=%d\n\r",DNUM);
-	//write_uart(messageBuf);
 
-	//write_uart("Debug: BIOS_start\n\r");
 
-	//uint32_t *L2RAM_MultiCoreBoot=(uint32_t*)CORE0_MAGIC_ADDR;
-	//*(L2RAM_MultiCoreBoot+DNUM)=0X1;
-	if (DNUM == 0)
-	{
-		write_uart("core0 running\r\n");
-	}
+//	if (DNUM == 1)
+//	{
+//		write_uart("core1 running\r\n");
+//	}
 	uint32_t L2RAM_MultiCoreBoot = (0x1087ffff - 8 * sizeof(uint32_t));
 
 	*((uint32_t *) (L2RAM_MultiCoreBoot + DNUM * 4)) = 0x00000001;
+
 
 	//TODO:
 	// create the Task ,receive the input picture frome the core0.
 	// create the Task ,process the picture.
 	// create the Task ,output the picture.
 
-	while (1)
-	{
-		;
-	}
+
 	/**(volatile uint32_t *)(0x0087fffc)=0xBABEFACE;
 	 write_uart("hello world!!!\r\n");
 	 while(1)
@@ -280,6 +296,28 @@ int main()
 	 ;
 	 }*/
 	//BIOS_start();
+}
+#define READ (0x55aa)
+#define WRITE (0xaa55)
+static void interruptRegister()
+{
+	// IPC interrupt set.
+		int ipcEventId=91;
+		Hwi_Params hwiParams;
+		Hwi_Params_init(&hwiParams);
+		hwiParams.arg=DNUM;
+		hwiParams.eventId=ipcEventId;
+		hwiParams.enableInt=TRUE;
+		Hwi_create(5,ipcIrqHandler,&hwiParams,NULL);
+}
+// get interrupt from Core0 can be read the picture from Core0.
+static void ipcIrqHandler(UArg params)
+{
+	UArg coreIndex=params;
+	if(coreIndex==READ)
+	{
+		//Semaphore_post();
+	}
 }
 
 int StackTest()
@@ -371,7 +409,8 @@ int StackTest()
 	 fxn -- function
 	 arg -- argument to function
 	 unmask -- bool to unmask interrupt
-	 */CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler,
+	 */
+	CpIntc_dispatchPlug(PCIEXpress_Legacy_INTA, (CpIntc_FuncPtr) isrHandler,
 			15, TRUE);
 
 	/*
@@ -390,7 +429,8 @@ int StackTest()
 	 hwiFxn -- pointer to ISR function
 	 params -- per-instance config params, or NULL to select default values (target-domain only)
 	 eb -- active error-handling block, or NULL to select default policy (target-domain only)
-	 */Hwi_create(4, &CpIntc_dispatch, &HwiParam_intc, NULL);
+	 */
+	Hwi_create(4, &CpIntc_dispatch, &HwiParam_intc, NULL);
 
 	//
 	// THIS MUST BE THE ABSOLUTE FIRST THING DONE IN AN APPLICATION before
