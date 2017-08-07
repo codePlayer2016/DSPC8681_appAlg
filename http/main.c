@@ -62,13 +62,13 @@
 #include "LinkLayer.h"
 #include "jpegDecoder.h"
 
+extern Semaphore_Handle g_readJpegSrc;
+extern Semaphore_Handle g_dpmProcessBegin;
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
 
 extern Semaphore_Handle timeoutSemaphore;
 
-extern Semaphore_Handle g_readSemaphore;
-extern Semaphore_Handle g_writeSemaphore;
 extern Semaphore_Handle pcFinishReadSemaphore;
 
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
@@ -153,6 +153,7 @@ static void NetworkClose();
 static void NetworkIPAddr(IPN IPAddr, uint IfIdx, uint fAdd);
 
 extern int http_get();
+extern void DPMMain();
 //extern void DPMMain();
 // Fun reporting function
 static void ServiceReport(uint Item, uint Status, uint Report, HANDLE hCfgEntry);
@@ -205,6 +206,8 @@ unsigned char *pCore5OutBuf = coreNOutBuf + (OutBufSize * 4);
 unsigned char *pCore6OutBuf = coreNOutBuf + (OutBufSize * 5);
 unsigned char *pCore7OutBuf = coreNOutBuf + (OutBufSize * 6);
 
+PicInfor *p_gPictureInfor;
+
 extern volatile cregister unsigned int DNUM;
 // Simulator EMAC Switch does not handle ALE_LEARN mode, so please configure the
 // MAC address of the PC where you want to launch the webpages and initiate PING to NDK */
@@ -237,6 +240,7 @@ void write_uart(char *msg)
 /////////////////////////////////////////////////////////////////////////////////////////////
 static void isrHandler(void* handle)
 {
+#if 0
 	char debugInfor[100];
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
 	CpIntc_disableHostInt(0, 3);
@@ -261,12 +265,12 @@ static void isrHandler(void* handle)
 	}
 	if ((pRegisterTable->readStatus) & DSP_RD_READY)
 	{
-		Semaphore_post(g_readSemaphore);
+		Semaphore_post(g_getJpegSrc);
 	}
 	if ((pRegisterTable->writeStatus) & DSP_WT_READY)
 
 	{
-		Semaphore_post(g_writeSemaphore);
+		Semaphore_post(g_dpmProcessBegin);
 	}
 
 	//clear PCIE interrupt
@@ -275,6 +279,7 @@ static void isrHandler(void* handle)
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 
 	CpIntc_enableHostInt(0, 3);
+#endif
 }
 #endif
 void ipcIrqHandler(UArg params);
@@ -302,7 +307,7 @@ void ipcIrqHandler(UArg params)
 	//process
 	//if (0 != ipcACKval)
 	{
-		Semaphore_post(g_readSemaphore);
+		Semaphore_post(g_readJpegSrc);
 	}
 	//restore the IPC_CG_ADDR(0) by write the IPC_AR_ADDR(0) that read Value.
 	//DEVICE_REG32_W(IPC_AR_ADDR(DNUM), ipcACKregVal);
@@ -314,6 +319,8 @@ void ipcIrqHandler(UArg params)
 //Cache_wait()
 void triggleIPCinterrupt(int destCoreNum, unsigned int srcFlag)
 {
+	DEVICE_REG32_W(KICK0, 0x83e70b13);
+	DEVICE_REG32_W(KICK1, 0x95a4f1e0);
 	unsigned int writeValue = ((srcFlag << 1) | 0x01);
 	//DEVICE_REG32_W((IPC_INT_ADDR(destCoreNum)), writeValue);
 	DEVICE_REG32_W((IPC_INT_ADDR(destCoreNum)), writeValue);
@@ -933,15 +940,35 @@ int StackTest()
 
 	if (DNUM == 1)
 	{
+		int maxCount = 4; //todo: will be adjust.
+		int countIndex = 0;
+		unsigned int picLen = 0;
+		unsigned char *pSrc = NULL;
+		p_gPictureInfor = (PicInfor *) malloc(sizeof(PicInfor));
 
-		write_uart("core1 StackTest run\n\r");
-		Semaphore_pend(g_readSemaphore, BIOS_WAIT_FOREVER);
-		int length = *(int *) pCore1InBuf;
-		sprintf(debugBuf,"core1:length=%d\n\r",length);
-		write_uart(debugBuf);
-		//triggleIPCinterrupt(0, 4);
-		DEVICE_REG32_W((IPC_INT_ADDR(0)), 0x00000001);
-		//write_uart("core wait interrupt finished run\n\r");
+		Semaphore_pend(g_readJpegSrc, BIOS_WAIT_FOREVER);
+
+		write_uart("getINTfromCore0\n\r");
+		pSrc = pCore1InBuf;
+
+		while (countIndex < maxCount)
+		{
+			picLen = *(int *) pSrc;
+			pSrc += 4;
+			p_gPictureInfor->picSrcAddr[countIndex] = pSrc;
+			p_gPictureInfor->picSrcLength[countIndex] = picLen;
+
+			sprintf(debugBuf, "clength=%d-->%d,countIndex=%d\n\r", picLen,
+					p_gPictureInfor->picSrcLength[countIndex], countIndex);
+			write_uart(debugBuf);
+			countIndex++;
+			pSrc += ((picLen + 3) / 4) * 4;
+
+		}
+		//todo Semaphore_post();for the dpm.
+		Semaphore_post(g_dpmProcessBegin);
+		triggleIPCinterrupt(0, 4);
+
 	}
 
 }
@@ -1010,11 +1037,11 @@ static void NetworkIPAddr(IPN IPAddr, uint IfIdx, uint fAdd)
 // Here's a quick example of using service status updates
 //
 static char *TaskName[] =
-{ "Telnet", "HTTP", "NAT", "DHCPS", "DHCPC", "DNS" };
+{	"Telnet", "HTTP", "NAT", "DHCPS", "DHCPC", "DNS"};
 static char *ReportStr[] =
-{ "", "Running", "Updated", "Complete", "Fault" };
+{	"", "Running", "Updated", "Complete", "Fault"};
 static char *StatusStr[] =
-{ "Disabled", "Waiting", "IPTerm", "Failed", "Enabled" };
+{	"Disabled", "Waiting", "IPTerm", "Failed", "Enabled"};
 static void ServiceReport(uint Item, uint Status, uint Report, HANDLE h)
 {
 	/*    write_uart( "Service Status: %-9s: %-9s: %-9s: %03d\n",

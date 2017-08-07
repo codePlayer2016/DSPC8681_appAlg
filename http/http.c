@@ -13,8 +13,8 @@
 
 #define URL_ITEM_LEN (100)
 
-extern Semaphore_Handle g_readSemaphore;
-extern Semaphore_Handle g_writeSemaphore;
+extern Semaphore_Handle g_getJpegSrc;
+extern Semaphore_Handle g_dpmProcessBegin;
 
 extern Semaphore_Handle httptodpmSemaphore;
 
@@ -26,7 +26,7 @@ extern Semaphore_Handle gSendSemaphore;
 unsigned char g_outBuffer[0x00e00000]; //4M-->max size=500M
 //unsigned char *g_outBuffer=NULL; //27M
 
-PicInfor *p_gPictureInfor;
+extern PicInfor *p_gPictureInfor;
 
 int g_DownloadFlags = 1;
 unsigned char pHttpHeadbuffer[1024] = "";
@@ -118,6 +118,7 @@ void set_http_package(http_downloadInfo *p_info, char *http_request)
 
 int http_get()
 {
+#if 0
 	int retVal = 0;
 
 	http_downloadInfo url_infor;
@@ -226,7 +227,7 @@ int http_get()
 			write_uart(debugBuf);
 			urlItemNum = 0;
 			//timeout
-			Semaphore_pend(g_readSemaphore, BIOS_WAIT_FOREVER);
+			Semaphore_pend(g_getJpegSrc, BIOS_WAIT_FOREVER);
 			urlItemNum = DEVICE_REG32_R(&(pRegisterTable->DSP_urlNumsReg));
 			sprintf(debugBuf, "urlItemNum=%d\r\n",
 					pRegisterTable->DSP_urlNumsReg);
@@ -691,7 +692,7 @@ int http_get()
 			}
 			else
 			{
-				Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
+				Semaphore_pend(g_dpmProcessBegin, BIOS_WAIT_FOREVER);
 				//retVal = -1;
 				write_uart("wait the pc read.time over\n\r");
 			}
@@ -730,6 +731,7 @@ int http_get()
 	//free(g_outBuffer);
 	fdCloseSession(TaskSelf());
 	// display the download status
+#endif
 }
 
 /***************************************************************************

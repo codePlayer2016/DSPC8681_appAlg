@@ -217,8 +217,8 @@ std::istream & zftdt::operator>>(std::istream & is, Model & model)
 	// add by LHS.
 	//printf("nbParts=%d,first loop\n",nbParts);
 	//std::cout<<"nbPart="<<nbParts<<" first loop"<<std::endl;
-	sprintf(debugInfor,"nbParts=%d\r\n",nbParts);
-	write_uart(debugInfor);
+	//sprintf(debugInfor,"nbParts=%d\r\n",nbParts);
+	//write_uart(debugInfor);
 
 	for (int i = 0; i < nbParts; ++i)
 	{
@@ -253,8 +253,8 @@ std::istream & zftdt::operator>>(std::istream & is, Model & model)
 		// add by LHS.
 		//printf("rows=%d,cols=%d,nbFeatures=%d\n",rows,cols,nbFeatures);
 		//std::cout<<"rows="<<rows<<" cols="<<cols<<" nbFeatures="<<nbFeatures<<std::endl;
-		sprintf(debugInfor,"rows=%d,cols=%d,nbFeatures=%d\r\n",rows,cols,nbFeatures);
-		write_uart(debugInfor);
+		//sprintf(debugInfor,"rows=%d,cols=%d,nbFeatures=%d\r\n",rows,cols,nbFeatures);
+		//write_uart(debugInfor);
 
 		for (int y = 0; y < rows; ++y)
 		{

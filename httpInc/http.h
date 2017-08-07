@@ -95,11 +95,14 @@ typedef struct pic_status
 } pic_status,*p_pic_status;
 typedef struct __tagPicInfor
 {
-	uint8_t *picAddr[100];
-	uint8_t picUrls[100][120];
-	uint8_t picName[100][40];
-	uint32_t picLength[100];
-	uint32_t picNums;
+//	uint8_t *picAddr[100];
+//	uint8_t picUrls[100][120];
+//	uint8_t picName[100][40];
+//	uint32_t picLength[100];
+//	uint32_t picNums;
+	uint8_t *picSrcAddr[10];
+	uint32_t picSrcLength[10];
+	uint8_t picNums;
 } PicInfor;
 //typedef struct __tagPicOutInfor
 //{

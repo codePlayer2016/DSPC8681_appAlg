@@ -45,15 +45,20 @@ void write_uart(char* msg)
 	}
 }
 #endif
-
+extern volatile cregister unsigned int DNUM;
 typedef struct __tagPicInfor
 {
-	uint8_t *picAddr[100];
-	uint8_t picUrls[100][120];
-	uint8_t picName[100][40];
-	uint32_t picLength[100];
-	uint32_t picNums;
+//	uint8_t *picAddr[100];
+//	uint8_t picUrls[100][120];
+//	uint8_t picName[100][40];
+//	uint32_t picLength[100];
+//	uint32_t picNums;
+	uint8_t *picSrcAddr[10];
+	uint32_t picSrcLength[10];
+	uint8_t picNums;
 } PicInfor;
+
+extern void write_uart(char* msg);
 
 uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 // for uart debug
@@ -62,11 +67,13 @@ char debugInfor[100];
 extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
+extern Semaphore_Handle g_dpmProcessBegin;
 extern Semaphore_Handle pcFinishReadSemaphore;
 //extern unsigned char *g_outBuffer; //4M
 
 //extern PicInfor gPictureInfor;//
 extern PicInfor *p_gPictureInfor;
+extern unsigned char *pCore1InBuf;
 uint8_t *inputSrc = NULL;
 
 int jpegPicLength = 0;
@@ -138,7 +145,7 @@ void JpegInit()
 	if ((handle = (IALG_Handle) ALG_create((IALG_Fxns *) &JPEGDEC_TI_IJPEGDEC,
 			(IALG_Handle) NULL, (IALG_Params *) jpegDecParams)) == NULL)
 	{
-
+		write_uart("dpm init finished\n\r");
 	}
 
 }
@@ -162,9 +169,10 @@ void JpegProcess(int picNum)
 
 	uint8_t *inputData = NULL;
 
-	inputSrc = p_gPictureInfor->picAddr[picNum];
-	jpegPicLength = p_gPictureInfor->picLength[picNum];
-	inputData=((uint8_t *)inputSrc+4);
+	inputSrc = p_gPictureInfor->picSrcAddr[picNum];
+	jpegPicLength = p_gPictureInfor->picSrcLength[picNum];
+	//inputData=((uint8_t *)inputSrc+4);
+	inputData = inputSrc;
 	//inputData=((char*)inputSrc+4);
 	validBytes = jpegPicLength;
 
@@ -186,7 +194,7 @@ void JpegProcess(int picNum)
 
 	inputBufDesc.descs[0].buf = inputData;
 	outputBufDesc.descs[0].buf = outputData;
-	if(inputBufDesc.descs[0].buf==NULL)
+	if (inputBufDesc.descs[0].buf == NULL)
 	{
 		write_uart("input img is error\r\n");
 		//return;
@@ -429,75 +437,84 @@ void JpegProcess(int picNum)
 void DPMMain()
 {
 
-	unsigned int picNum = 0;
-	int retVal = 0;
-	int count = 0;
-
-	/* Init jpeg Decode */
-	JpegInit();
-	/* Init DPM Algrithm */
-	dpmInit();
-
-	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-	sprintf(debugInfor,
-			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
-			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
-			pRegisterTable->dpmOverStatus);
-	write_uart(debugInfor);
-	count = picNum % URLNUM;
-
-	while (1)
+	if (DNUM == 1)
 	{
-		write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
-		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("dsp pend pcFinishReadSemaphore over\r\n");
+		unsigned int picNum = 0;
+		unsigned int picMax = 4;
+		int retVal = 0;
+		int count = 0;
 
-		while (count < URLNUM && picNum < p_gPictureInfor->picNums)
+		/* Init jpeg Decode */
+
+		/* Init DPM Algrithm */
+		//dpmInit();
+		//Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+		write_uart("----dpmMain begin----\n\r");
+		Semaphore_pend(g_dpmProcessBegin, BIOS_WAIT_FOREVER);
+		write_uart("dpm begin process the picture\n\r");
+		JpegInit();
+//	sprintf(debugInfor,
+//			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
+//			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
+//			pRegisterTable->dpmOverStatus);
+//	write_uart(debugInfor);
+//	count = picNum % URLNUM;
+
+//	while (1)
 		{
-			/* jpeg Decode to process one picture */
-			JpegProcess(picNum);
+//		write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
+//		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
 
-			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
+			//while (count < URLNUM && picNum < p_gPictureInfor->picNums)
+			while (picNum < picMax)
 			{
-				dpmProcess(outputBufDesc.descs[0].buf,
-						status->imgdecStatus.outputWidth,
-						status->imgdecStatus.outputHeight, picNum, URLNUM,
-						p_gPictureInfor->picNums, pRegisterTable);
+				/* jpeg Decode to process one picture */
+				JpegProcess(picNum);
+
+//			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
+//			{
+//				dpmProcess(outputBufDesc.descs[0].buf,
+//						status->imgdecStatus.outputWidth,
+//						status->imgdecStatus.outputHeight, picNum, URLNUM,
+//						p_gPictureInfor->picNums, pRegisterTable);
+//
+//			}
+				picNum++;
+				//count++;
+			}
+#if 0
+			JpegDeInit();
+			count = 0;
+			//all picture dpm over
+			if (picNum >= p_gPictureInfor->picNums)
+			{
+				//set reg
+				pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
+				DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+				write_uart(
+						"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
+				picNum = 0;
+				break;
 
 			}
-			picNum++;
-			count++;
-		}
-		JpegDeInit();
-		count = 0;
-		//all picture dpm over
-		if (picNum >= p_gPictureInfor->picNums)
-		{
-			//set reg
-			pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
-			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
-			write_uart(
-					"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
-			picNum = 0;
-			break;
-
-		}
-		//part picture dpm over
-		else
-		{
-			//check clear dpmOver interrupt reg or not
-			if (pRegisterTable->dpmOverStatus & DSP_DPM_OVERSTATUS)
+			//part picture dpm over
+			else
 			{
-				pRegisterTable->dpmOverControl |= DSP_DPM_OVERCLR;
+				//check clear dpmOver interrupt reg or not
+				if (pRegisterTable->dpmOverStatus & DSP_DPM_OVERSTATUS)
+				{
+					pRegisterTable->dpmOverControl |= DSP_DPM_OVERCLR;
+				}
+				// trigger the interrupt to the pc ,
+				DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+				write_uart("trigger the host interrupt\r\n");
+
+				//Semaphore_post(gSendSemaphore);
+				//write_uart("post gSendSemaphore,make http loop can continue\r\n");
 			}
-			// trigger the interrupt to the pc ,
-			DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
-			write_uart("trigger the host interrupt\r\n");
+#endif
 
-			//Semaphore_post(gSendSemaphore);
-			//write_uart("post gSendSemaphore,make http loop can continue\r\n");
 		}
-
 	}
-} /* main() */
+}
 
