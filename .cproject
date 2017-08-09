@@ -7,9 +7,9 @@
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.ti.ccstudio.buildDefinitions.C6000.Debug.1642285013" moduleId="org.eclipse.cdt.core.settings" name="Debug">
 				<macros>
 					<stringMacro name="XDAIS_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/xdais_7_21_01_07"/>
-					<stringMacro name="DSPC8681_PDK_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/pdk_C6678_1_1_2_6"/>
-					<stringMacro name="FRAMEWORK_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/framework_components_3_23_02_16"/>
 					<stringMacro name="NDK_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/ndk_2_22_00_06"/>
+					<stringMacro name="FRAMEWORK_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/framework_components_3_23_02_16"/>
+					<stringMacro name="DSPC8681_PDK_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/pdk_C6678_1_1_2_6"/>
 					<stringMacro name="XDCTOOLS_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/xdctools_3_25_03_72"/>
 					<stringMacro name="BIOS_INSTALL_DIR" type="VALUE_PATH_DIR" value="/opt/ti/bios_6_35_04_50"/>
 				</macros>
@@ -91,11 +91,10 @@
 								<option id="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.XDC_PATH.900588155" name="Package repositories (--xdcpath)" superClass="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.XDC_PATH" valueType="stringList">
 									<listOptionValue builtIn="false" value="&quot;${XDCTOOLS_INSTALL_DIR}/packages&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${TARGET_CONTENT_BASE}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${NDK_INSTALL_DIR}/packages&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${DSPC8681_PDK_INSTALL_DIR}/packages&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${PROJECT_LOC}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${BIOS_CG_ROOT}/packages&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${XDAIS_INSTALL_DIR}/packages&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${DSPC8681_PDK_INSTALL_DIR}/packages&quot;"/>
 								</option>
 								<option id="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.TARGET.2038548175" name="Target (-t)" superClass="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.TARGET" value="ti.targets.elf.C66" valueType="string"/>
 								<option id="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.PLATFORM.880567558" name="Platform (-p)" superClass="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.PLATFORM" value="ti.platforms.DSPC8681" valueType="string"/>
@@ -118,8 +117,8 @@
 				<macros>
 					<stringMacro name="XDC_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdctools_3_23_04_60"/>
 					<stringMacro name="DSPC8681_PDK_INSTALL" type="VALUE_PATH_DIR" value="/opt/ti/pdk_C6678_1_1_2_5"/>
-					<stringMacro name="XDAIS_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdais_7_21_01_07"/>
 					<stringMacro name="FRAMEWORK_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/framework_components_3_23_02_16"/>
+					<stringMacro name="XDAIS_INSTALL_ROOT" type="VALUE_PATH_DIR" value="/opt/ti/xdais_7_21_01_07"/>
 				</macros>
 				<externalSettings/>
 				<extensions>
@@ -206,7 +205,7 @@
 									<listOptionValue builtIn="false" value="&quot;${NDK_INSTALL_DIR}/packages&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${TI_PDK_C6678_INSTALL_DIR}/packages&quot;"/>
 								</option>
-								<option id="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.BUILD_CONFIGURATION_FILE.1764100830" superClass="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.BUILD_CONFIGURATION_FILE" value="&quot;${PROJECT_ROOT}/ti/platforms/DSPC8681/config.bld&quot;" valueType="string"/>
+								<option id="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.BUILD_CONFIGURATION_FILE.1764100830" name="Build configuration file (-b)" superClass="com.ti.rtsc.buildDefinitions.XDC_3.16.tool.BUILD_CONFIGURATION_FILE" value="&quot;${PROJECT_ROOT}/ti/platforms/DSPC8681/config.bld&quot;" valueType="string"/>
 							</tool>
 						</toolChain>
 					</folderInfo>

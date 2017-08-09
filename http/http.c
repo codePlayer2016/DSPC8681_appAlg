@@ -1,10 +1,10 @@
-#include <ti/ndk/inc/netmain.h>
+//#include <ti/ndk/inc/netmain.h>
 #include <ti/csl/tistdtypes.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <ti/ndk/inc/socket.h>
+//#include <ti/ndk/inc/socket.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/family/c66/tci66xx/CpIntc.h>
@@ -34,11 +34,12 @@ unsigned char pHttpGetbuffer[3 * 1024 * 1024];
 
 uint32_t *g_pReceiveBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 2 * 4 * 1024);
 extern void write_uart(char* msg);
-int httpSendRequest(SOCKET socket, void *buffer, int *length, int flag);
-int httpRecvHead(SOCKET socket, void *buffer, int *length);
-int httpRecvGet(SOCKET socket, void *buffer, int *length, int flag);
-int httpRecvHeadTemp(SOCKET socket, void *buffer, int *length);
-int httpRecvGetTemp(SOCKET socket, void *buffer, int *length, int flag);
+
+//int httpSendRequest(SOCKET socket, void *buffer, int *length, int flag);
+//int httpRecvHead(SOCKET socket, void *buffer, int *length);
+//int httpRecvGet(SOCKET socket, void *buffer, int *length, int flag);
+//int httpRecvHeadTemp(SOCKET socket, void *buffer, int *length);
+//int httpRecvGetTemp(SOCKET socket, void *buffer, int *length, int flag);
 
 int pollValue(uint32_t * pAddress, uint32_t pollVal, uint32_t maxPollCount)
 {
@@ -115,7 +116,7 @@ void set_http_package(http_downloadInfo *p_info, char *http_request)
 			p_info->p_input_url, p_info->p_host_ip);
 	//write_uart(http_request);
 }
-
+#if 0
 int http_get()
 {
 #if 0
@@ -1449,3 +1450,4 @@ int httpRecvHeadTemp(SOCKET socket, void *buffer, int *length)
 
 	return (retVal);
 }
+#endif

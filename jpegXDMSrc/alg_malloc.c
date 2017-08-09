@@ -99,7 +99,7 @@ Void _ALG_freeMemory(IALG_MemRec memTab[], Int n);
 #include "jpegdec.h"
 //#include "jpegdec_ti.h"
 
-FILE *Memory;
+//FILE *Memory;
 Int Size_external_persist, Size_Internal_persist;
 Int Size_external_Scratch, Size_Internal_Scratch;
 extern JPEGDEC_Params jpegdecParams;
@@ -134,14 +134,14 @@ int allocateMemTabRequest(IALG_MemRec *memTab)
 		}
 		if (memTab->attrs == IALG_PERSIST)
 		{
-			fprintf(Memory, "  External_persist ");
-			fprintf(Memory, " \t size	%d \n ", memTab->size);
+//			fprintf(Memory, "  External_persist ");
+//			fprintf(Memory, " \t size	%d \n ", memTab->size);
 			Size_external_persist = Size_external_persist + memTab->size;
 		}
 		else
 		{
-			fprintf(Memory, "  External_Scratch ");
-			fprintf(Memory, " \t size	%d \n ", memTab->size);
+//			fprintf(Memory, "  External_Scratch ");
+//			fprintf(Memory, " \t size	%d \n ", memTab->size);
 			Size_external_Scratch = Size_external_Scratch + memTab->size;
 		}
 	}
@@ -152,14 +152,14 @@ int allocateMemTabRequest(IALG_MemRec *memTab)
 
 		if (memTab->attrs == IALG_PERSIST)
 		{
-			fprintf(Memory, " \t Internal_persist ");
-			fprintf(Memory, " \t size	%d \n ", memTab->size);
+//			fprintf(Memory, " \t Internal_persist ");
+//			fprintf(Memory, " \t size	%d \n ", memTab->size);
 			Size_Internal_persist = Size_Internal_persist + memTab->size;
 		}
 		else
 		{
-			fprintf(Memory, "   Internal_Scratch ");
-			fprintf(Memory, " \t size	%d \n ", memTab->size);
+//			fprintf(Memory, "   Internal_Scratch ");
+//			fprintf(Memory, " \t size	%d \n ", memTab->size);
 			Size_Internal_Scratch = Size_Internal_Scratch + memTab->size;
 
 		}
@@ -259,31 +259,32 @@ Bool _ALG_allocMemory(IALG_MemRec memTab[], Int n)
 	int program_mem = 102; // RGB : 63; cropp : 70 , resizing : 77, org : 56
 	int temp_per, temp_scr;
 	char * base_ptr;
-	if (n >= 9)
-		Memory = fopen("Memory_Ext_prog.txt", "w");
-	else
-		Memory = fopen("Memory_Ext_Seql.txt", "w");
+//	if (n >= 9)
+//		Memory = fopen("Memory_Ext_prog.txt", "w");
+//	else
+//		Memory = fopen("Memory_Ext_Seql.txt", "w");
 
 	Size_external_persist = 0;
 	Size_Internal_persist = 0;
 	Size_external_Scratch = 0;
 	Size_Internal_Scratch = 0;
 
-	fprintf(Memory, " \n For resolution : %d * %d \n\n",
-			jpegdecParams.imgdecParams.maxWidth,
-			jpegdecParams.imgdecParams.maxHeight);
+//	fprintf(Memory, " \n For resolution : %d * %d \n\n",
+//			jpegdecParams.imgdecParams.maxWidth,
+//			jpegdecParams.imgdecParams.maxHeight);
 
 	for (i = 0; i < n; i++)
 	{
 		/* This is to take care of change in memory allocator for /
 		 /		different requirements. */
-		fprintf(Memory, " \t Memtab No. %d ", i);
+//		fprintf(Memory, " \t Memtab No. %d ", i);
 
 		allocateMemTabRequest(&memTab[i]);
 
 		if (memTab[i].base == NULL)
 		{
 			_ALG_freeMemory(memTab, i);
+			write_uart("error3\n\r");
 			return (FALSE);
 		}
 		else
@@ -298,25 +299,25 @@ Bool _ALG_allocMemory(IALG_MemRec memTab[], Int n)
 	temp_per = ((double) ((Size_external_persist) / 1024) + 1) / 2 * 2;
 	temp_scr = ((double) ((Size_external_Scratch) / 1024) + 1) / 2 * 2;
 
-	fprintf(Memory,
-			" \n \n \t Size_external_persist %d in KByte %f  i.e.  %d \n ",
-			Size_external_persist, (double) Size_external_persist / 1024,
-			temp_per);
-	fprintf(Memory, " \t Size_external_Scratch %d  in KByte %f i.e.   %d \n ",
-			Size_external_Scratch, (double) Size_external_Scratch / 1024,
-			temp_scr);
+//	fprintf(Memory,
+//			" \n \n \t Size_external_persist %d in KByte %f  i.e.  %d \n ",
+//			Size_external_persist, (double) Size_external_persist / 1024,
+//			temp_per);
+//	fprintf(Memory, " \t Size_external_Scratch %d  in KByte %f i.e.   %d \n ",
+//			Size_external_Scratch, (double) Size_external_Scratch / 1024,
+//			temp_scr);
 #ifdef INTERNAL_MEM
 	fprintf(Memory," \t Size_Internal_persist %d  in KByte %f\n ",Size_Internal_persist,(double)Size_Internal_persist/1024);
 	fprintf(Memory," \t Size_Internal_Scratch %d  in KByte %f\n ",Size_Internal_Scratch,(double)Size_Internal_Scratch/1024);
 	fprintf(Memory," \t Total Internal		 %d  in KByte %f\n ",Size_Internal_persist + Size_Internal_Scratch,(double)(Size_Internal_persist + Size_Internal_Scratch)/1024);
 #endif
 
-	fprintf(Memory,
-			" \n \t Total External including contant		 %d.18  in KByte \n ",
-			temp_per + temp_scr);
-	fprintf(Memory,
-			" \t Total External	including stack & program	 %d.18  in KByte \n ",
-			temp_per + temp_scr + program_mem + stack);
+//	fprintf(Memory,
+//			" \n \t Total External including contant		 %d.18  in KByte \n ",
+//			temp_per + temp_scr);
+//	fprintf(Memory,
+//			" \t Total External	including stack & program	 %d.18  in KByte \n ",
+//			temp_per + temp_scr + program_mem + stack);
 
 	if (jpegdecParams.progressiveDecFlag == 1)
 	{
@@ -328,10 +329,10 @@ Bool _ALG_allocMemory(IALG_MemRec memTab[], Int n)
 		temp = 6 * 720 * 480; // D1
 		Size_external_persist = Size_external_persist1 + temp;
 		temp_per = ((double) ((Size_external_persist) / 1024) + 1) / 2 * 2;
-
-		fprintf(Memory, " \n For D1 : 720 * 480 ");
-		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
-				temp_per);
+//
+//		fprintf(Memory, " \n For D1 : 720 * 480 ");
+//		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
+//				temp_per);
 
 #ifdef INTERNAL_MEM
 		fprintf(Memory," \t Size_Internal_persist %d  in KByte %f\n ",Size_Internal_persist,(double)Size_Internal_persist/1024);
@@ -340,92 +341,92 @@ Bool _ALG_allocMemory(IALG_MemRec memTab[], Int n)
 
 #endif
 
-		fprintf(Memory,
-				" \n \t Total External including contant		 %d.18  in KByte \n ",
-				temp_per + temp_scr);
-		fprintf(Memory,
-				" \t Total External	including stack & program	 %d.18  in KByte \n ",
-				temp_per + temp_scr + program_mem + stack);
+//		fprintf(Memory,
+//				" \n \t Total External including contant		 %d.18  in KByte \n ",
+//				temp_per + temp_scr);
+//		fprintf(Memory,
+//				" \t Total External	including stack & program	 %d.18  in KByte \n ",
+//				temp_per + temp_scr + program_mem + stack);
 
 		temp = 6 * 1280 * 1024; // 1.3 MP
 		Size_external_persist = Size_external_persist1 + temp;
 		temp_per = ((double) ((Size_external_persist) / 1024) + 1) / 2 * 2;
 
-		fprintf(Memory, " \n For 1.3 MP : 1280 * 1024 ");
-		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
-				temp_per);
+//		fprintf(Memory, " \n For 1.3 MP : 1280 * 1024 ");
+//		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
+//				temp_per);
 #ifdef INTERNAL_MEM
 		fprintf(Memory," \t Size_Internal_persist %d  in KByte %f\n ",Size_Internal_persist,(double)Size_Internal_persist/1024);
 		fprintf(Memory," \t Size_Internal_Scratch %d  in KByte %f\n ",Size_Internal_Scratch,(double)Size_Internal_Scratch/1024);
 		fprintf(Memory," \t Total Internal		 %d  in KByte %f\n ",Size_Internal_persist + Size_Internal_Scratch,(double)(Size_Internal_persist + Size_Internal_Scratch)/1024);
 #endif
-		fprintf(Memory,
-				" \n \t Total External including contant		 %d.18  in KByte \n ",
-				temp_per + temp_scr);
-		fprintf(Memory,
-				" \t Total External	including stack & program	 %d.18  in KByte \n ",
-				temp_per + temp_scr + program_mem + stack);
+//		fprintf(Memory,
+//				" \n \t Total External including contant		 %d.18  in KByte \n ",
+//				temp_per + temp_scr);
+//		fprintf(Memory,
+//				" \t Total External	including stack & program	 %d.18  in KByte \n ",
+//				temp_per + temp_scr + program_mem + stack);
 
 		temp = 6 * 1600 * 1200; // 1.9 MP
 		Size_external_persist = Size_external_persist1 + temp;
 		temp_per = ((double) ((Size_external_persist) / 1024) + 1) / 2 * 2;
-
-		fprintf(Memory, " \n For 1.9 MP : 1600x1200  ");
-		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
-				temp_per);
+//
+//		fprintf(Memory, " \n For 1.9 MP : 1600x1200  ");
+//		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
+//				temp_per);
 #ifdef INTERNAL_MEM
 		fprintf(Memory," \t Size_Internal_persist %d  in KByte %f\n ",Size_Internal_persist,(double)Size_Internal_persist/1024);
 		fprintf(Memory," \t Size_Internal_Scratch %d  in KByte %f\n ",Size_Internal_Scratch,(double)Size_Internal_Scratch/1024);
 		fprintf(Memory," \t Total Internal		 %d  in KByte %f\n ",Size_Internal_persist + Size_Internal_Scratch,(double)(Size_Internal_persist + Size_Internal_Scratch)/1024);
 #endif
-		fprintf(Memory,
-				" \n \t Total External including contant		 %d.18  in KByte \n ",
-				temp_per + temp_scr);
-		fprintf(Memory,
-				" \t Total External	including stack & program	 %d.18  in KByte \n ",
-				temp_per + temp_scr + program_mem + stack);
+//		fprintf(Memory,
+//				" \n \t Total External including contant		 %d.18  in KByte \n ",
+//				temp_per + temp_scr);
+//		fprintf(Memory,
+//				" \t Total External	including stack & program	 %d.18  in KByte \n ",
+//				temp_per + temp_scr + program_mem + stack);
 
 		temp = 6 * 2048 * 1536; // 3.1 MP
 		Size_external_persist = Size_external_persist1 + temp;
 		temp_per = ((double) ((Size_external_persist) / 1024) + 1) / 2 * 2;
 
-		fprintf(Memory, " \n For 3.1 MP : 2048x1536  ");
-		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
-				temp_per);
+//		fprintf(Memory, " \n For 3.1 MP : 2048x1536  ");
+//		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
+//				temp_per);
 #ifdef INTERNAL_MEM
 		fprintf(Memory," \t Size_Internal_persist %d  in KByte %f\n ",Size_Internal_persist,(double)Size_Internal_persist/1024);
 		fprintf(Memory," \t Size_Internal_Scratch %d  in KByte %f\n ",Size_Internal_Scratch,(double)Size_Internal_Scratch/1024);
 		fprintf(Memory," \t Total Internal		 %d  in KByte %f\n ",Size_Internal_persist + Size_Internal_Scratch,(double)(Size_Internal_persist + Size_Internal_Scratch)/1024);
 #endif
-		fprintf(Memory,
-				" \n \t Total External including contant		 %d.18  in KByte \n ",
-				temp_per + temp_scr);
-		fprintf(Memory,
-				" \t Total External	including stack & program	 %d.18  in KByte \n ",
-				temp_per + temp_scr + program_mem + stack);
+//		fprintf(Memory,
+//				" \n \t Total External including contant		 %d.18  in KByte \n ",
+//				temp_per + temp_scr);
+//		fprintf(Memory,
+//				" \t Total External	including stack & program	 %d.18  in KByte \n ",
+//				temp_per + temp_scr + program_mem + stack);
 
 		temp = 6 * 2560 * 2048; // 5.2 MP
 		Size_external_persist = Size_external_persist1 + temp;
 		temp_per = ((double) ((Size_external_persist) / 1024) + 1) / 2 * 2;
 
-		fprintf(Memory, " \n For 5.2 MP : 2560�048  ");
-		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
-				temp_per);
+//		fprintf(Memory, " \n For 5.2 MP : 2560�048  ");
+//		fprintf(Memory, " \n \t Size_external_persist %d in KByte \n ",
+//				temp_per);
 #ifdef INTERNAL_MEM
 		fprintf(Memory," \t Size_Internal_persist %d  in KByte %f\n ",Size_Internal_persist,(double)Size_Internal_persist/1024);
 		fprintf(Memory," \t Size_Internal_Scratch %d  in KByte %f\n ",Size_Internal_Scratch,(double)Size_Internal_Scratch/1024);
 		fprintf(Memory," \t Total Internal		 %d  in KByte %f\n ",Size_Internal_persist + Size_Internal_Scratch,(double)(Size_Internal_persist + Size_Internal_Scratch)/1024);
 #endif
-		fprintf(Memory,
-				" \n \t Total External including contant		 %d.18  in KByte \n ",
-				temp_per + temp_scr);
-		fprintf(Memory,
-				" \t Total External	including stack & program	 %d.18  in KByte \n ",
-				temp_per + temp_scr + program_mem + stack);
+//		fprintf(Memory,
+//				" \n \t Total External including contant		 %d.18  in KByte \n ",
+//				temp_per + temp_scr);
+//		fprintf(Memory,
+//				" \t Total External	including stack & program	 %d.18  in KByte \n ",
+//				temp_per + temp_scr + program_mem + stack);
 
 	}
 
-	fclose(Memory);
+//	fclose(Memory);
 
 	return (TRUE);
 }

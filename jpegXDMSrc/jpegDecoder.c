@@ -32,19 +32,12 @@
 #include <ti/sysbios/knl/Task.h>
 #include "jpegDecoder.h"
 #include "ti/platform/platform.h"
-#if 0
-void write_uart(char* msg)
-{
-	uint32_t i;
-	uint32_t msg_len = strlen(msg);
 
-	/* Write the message to the UART */
-	for (i = 0; i < msg_len; i++)
-	{
-		platform_uart_write(msg[i]);
-	}
-}
-#endif
+void JpegInit();
+void JpegDeInit();
+void DpmDeInit();
+void JpegProcess(int picNum);
+
 extern volatile cregister unsigned int DNUM;
 typedef struct __tagPicInfor
 {
@@ -67,7 +60,7 @@ char debugInfor[100];
 extern Semaphore_Handle httptodpmSemaphore;
 extern Semaphore_Handle gRecvSemaphore;
 extern Semaphore_Handle gSendSemaphore;
-extern Semaphore_Handle g_dpmProcessBegin;
+extern Semaphore_Handle g_dpmProcBg;
 extern Semaphore_Handle pcFinishReadSemaphore;
 //extern unsigned char *g_outBuffer; //4M
 
@@ -95,7 +88,6 @@ JPEGDEC_OutArgs jpegdecOutArgs;
 
 XDAS_UInt32 resizeOption, progressiveDecFlag, RGB_Format, alpha_rgb;
 XDAS_UInt32 outImgRes, numMCU_row, x_org, y_org, x_length, y_length;
-XDAS_Int32 DecodeTask(void);
 
 IIMGDEC1_Fxns *IIMGDEC1Fxns;
 
@@ -112,8 +104,92 @@ JPEGDEC_InArgs *inArgs = (JPEGDEC_InArgs*) &jpegdecInArgs;
 JPEGDEC_OutArgs *outArgs = (JPEGDEC_OutArgs*) &jpegdecOutArgs;
 
 //XDAS_Int32 DecodeTask()
+void DPMMain()
+{
+
+	if (DNUM == 1)
+	{
+		unsigned int picNum = 0;
+		unsigned int picMax = 4;
+		int retVal = 0;
+		int count = 0;
+
+		/* Init jpeg Decode */
+
+		/* Init DPM Algrithm */
+		//dpmInit();
+		//Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+		write_uart("----dpmMain begin----\n\r");
+		Semaphore_pend(g_dpmProcBg, BIOS_WAIT_FOREVER);
+		write_uart("dpm begin process the picture\n\r");
+		JpegInit();
+		write_uart("jpegInit over\n\r");
+//	sprintf(debugInfor,
+//			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
+//			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
+//			pRegisterTable->dpmOverStatus);
+//	write_uart(debugInfor);
+//	count = picNum % URLNUM;
+
+//	while (1)
+		{
+//		write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
+//		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
+
+			//while (count < URLNUM && picNum < p_gPictureInfor->picNums)
+			while (picNum < picMax)
+			{
+				/* jpeg Decode to process one picture */
+				JpegProcess(picNum);
+//			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
+//			{
+//				dpmProcess(outputBufDesc.descs[0].buf,
+//						status->imgdecStatus.outputWidth,
+//						status->imgdecStatus.outputHeight, picNum, URLNUM,
+//						p_gPictureInfor->picNums, pRegisterTable);
+//
+//			}
+				picNum++;
+				//count++;
+			}
+#if 0
+			JpegDeInit();
+			count = 0;
+			//all picture dpm over
+			if (picNum >= p_gPictureInfor->picNums)
+			{
+				//set reg
+				pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
+				DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+				write_uart(
+						"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
+				picNum = 0;
+				break;
+
+			}
+			//part picture dpm over
+			else
+			{
+				//check clear dpmOver interrupt reg or not
+				if (pRegisterTable->dpmOverStatus & DSP_DPM_OVERSTATUS)
+				{
+					pRegisterTable->dpmOverControl |= DSP_DPM_OVERCLR;
+				}
+				// trigger the interrupt to the pc ,
+				DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+				write_uart("trigger the host interrupt\r\n");
+
+				//Semaphore_post(gSendSemaphore);
+				//write_uart("post gSendSemaphore,make http loop can continue\r\n");
+			}
+#endif
+
+		}
+	}
+}
 void JpegInit()
 {
+	//write_uart("jpegInit\n\r");
 	jpegDecParams->imgdecParams.size = sizeof(JPEGDEC_Params);
 	// TODO: the two params should be set by parse the jpeg picture.
 	jpegDecParams->imgdecParams.maxHeight = 1500;
@@ -142,10 +218,13 @@ void JpegInit()
 	jpegdecInArgs.imgdecInArgs.size = sizeof(JPEGDEC_InArgs);
 	jpegdecOutArgs.imgdecOutArgs.size = sizeof(JPEGDEC_OutArgs);
 
-	if ((handle = (IALG_Handle) ALG_create((IALG_Fxns *) &JPEGDEC_TI_IJPEGDEC,
-			(IALG_Handle) NULL, (IALG_Params *) jpegDecParams)) == NULL)
+	//write_uart("dpm alg_create\n\r");
+	handle = (IALG_Handle) ALG_create((IALG_Fxns *) &JPEGDEC_TI_IJPEGDEC,
+			(IALG_Handle) NULL, (IALG_Params *) jpegDecParams);
+	if (handle == NULL)
 	{
 		write_uart("dpm init finished\n\r");
+		return;
 	}
 
 }
@@ -433,88 +512,5 @@ void JpegProcess(int picNum)
 	inputSrc = NULL;
 	inputData = NULL;
 
-}
-void DPMMain()
-{
-
-	if (DNUM == 1)
-	{
-		unsigned int picNum = 0;
-		unsigned int picMax = 4;
-		int retVal = 0;
-		int count = 0;
-
-		/* Init jpeg Decode */
-
-		/* Init DPM Algrithm */
-		//dpmInit();
-		//Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("----dpmMain begin----\n\r");
-		Semaphore_pend(g_dpmProcessBegin, BIOS_WAIT_FOREVER);
-		write_uart("dpm begin process the picture\n\r");
-		JpegInit();
-//	sprintf(debugInfor,
-//			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
-//			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
-//			pRegisterTable->dpmOverStatus);
-//	write_uart(debugInfor);
-//	count = picNum % URLNUM;
-
-//	while (1)
-		{
-//		write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
-//		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
-
-			//while (count < URLNUM && picNum < p_gPictureInfor->picNums)
-			while (picNum < picMax)
-			{
-				/* jpeg Decode to process one picture */
-				JpegProcess(picNum);
-
-//			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
-//			{
-//				dpmProcess(outputBufDesc.descs[0].buf,
-//						status->imgdecStatus.outputWidth,
-//						status->imgdecStatus.outputHeight, picNum, URLNUM,
-//						p_gPictureInfor->picNums, pRegisterTable);
-//
-//			}
-				picNum++;
-				//count++;
-			}
-#if 0
-			JpegDeInit();
-			count = 0;
-			//all picture dpm over
-			if (picNum >= p_gPictureInfor->picNums)
-			{
-				//set reg
-				pRegisterTable->dpmAllOverControl |= DSP_DPM_ALLOVER;
-				DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
-				write_uart(
-						"dsp have finish all picture dpm process,trigger the host interrupt\r\n");
-				picNum = 0;
-				break;
-
-			}
-			//part picture dpm over
-			else
-			{
-				//check clear dpmOver interrupt reg or not
-				if (pRegisterTable->dpmOverStatus & DSP_DPM_OVERSTATUS)
-				{
-					pRegisterTable->dpmOverControl |= DSP_DPM_OVERCLR;
-				}
-				// trigger the interrupt to the pc ,
-				DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
-				write_uart("trigger the host interrupt\r\n");
-
-				//Semaphore_post(gSendSemaphore);
-				//write_uart("post gSendSemaphore,make http loop can continue\r\n");
-			}
-#endif
-
-		}
-	}
 }
 

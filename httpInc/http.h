@@ -108,8 +108,9 @@ typedef struct __tagPicInfor
 //{
 //	unsigned char g_outBuffer[0x00400000];
 //} PicOutInfor;
+#if 0
 int http_parseURL(char *p_url,http_downloadInfo *p_info);
 int http_sendRequest(SOCKET *socket_sendHandle,char *p_urlInput,http_downloadInfo *p_info);
-
+#endif
 
 #endif
