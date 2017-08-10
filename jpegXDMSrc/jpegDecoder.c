@@ -37,6 +37,7 @@ void JpegInit();
 void JpegDeInit();
 void DpmDeInit();
 void JpegProcess(int picNum);
+void JpegProcess(int picNum);
 
 extern volatile cregister unsigned int DNUM;
 typedef struct __tagPicInfor
@@ -52,6 +53,26 @@ typedef struct __tagPicInfor
 } PicInfor;
 
 extern void write_uart(char* msg);
+
+
+#define DEBUG_PROCESS1
+#ifdef DEBUG_PROCESS1
+void debugLog(char* msg)
+{
+	uint32_t i;
+	uint32_t msg_len = strlen(msg);
+
+	/* Write the message to the UART */
+	for (i = 0; i < msg_len; i++)
+	{
+		platform_uart_write(msg[i]);
+	}
+}
+#else
+void write_uart(char *msg)
+{
+}
+#endif
 
 uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 // for uart debug
@@ -113,17 +134,22 @@ void DPMMain()
 		unsigned int picMax = 4;
 		int retVal = 0;
 		int count = 0;
-
-		/* Init jpeg Decode */
-
-		/* Init DPM Algrithm */
-		//dpmInit();
-		//Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("----dpmMain begin----\n\r");
 		Semaphore_pend(g_dpmProcBg, BIOS_WAIT_FOREVER);
-		write_uart("dpm begin process the picture\n\r");
+		debugLog("----dpmMain begin----\n\r");
+		/* Init jpeg Decode */
 		JpegInit();
-		write_uart("jpegInit over\n\r");
+		/* Init DPM Algrithm */
+		debugLog("----dpmInit begin----\n\r");
+		dpmInit();
+		//Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+		debugLog("----dpmInit over----\n\r");
+
+		//write_uart("dpm begin process the picture\n\r");
+
+
+
+
+		debugLog("jpegInit over\n\r");
 //	sprintf(debugInfor,
 //			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
 //			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
@@ -141,14 +167,15 @@ void DPMMain()
 			{
 				/* jpeg Decode to process one picture */
 				JpegProcess(picNum);
-//			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
-//			{
-//				dpmProcess(outputBufDesc.descs[0].buf,
-//						status->imgdecStatus.outputWidth,
-//						status->imgdecStatus.outputHeight, picNum, URLNUM,
-//						p_gPictureInfor->picNums, pRegisterTable);
-//
-//			}
+			if ((outArgs->imgdecOutArgs.extendedError == JPEGDEC_SUCCESS))
+			{
+				dpmProcess(outputBufDesc.descs[0].buf,
+						status->imgdecStatus.outputWidth,
+						status->imgdecStatus.outputHeight, picNum, URLNUM,
+						p_gPictureInfor->picNums, pRegisterTable);
+				//int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,int totalNum,registerTable *pRegisterTable);
+
+			}
 				picNum++;
 				//count++;
 			}
@@ -223,7 +250,7 @@ void JpegInit()
 			(IALG_Handle) NULL, (IALG_Params *) jpegDecParams);
 	if (handle == NULL)
 	{
-		write_uart("dpm init finished\n\r");
+		write_uart("jpeg init error\n\r");
 		return;
 	}
 
@@ -257,8 +284,8 @@ void JpegProcess(int picNum)
 
 	sprintf(debugInfor, "validBytes=%d,inputData address:%x\r\n", validBytes,
 			inputData);
-	write_uart(debugInfor);
-	write_uart("start the jpeg decode and dpm\r\n");
+	debugLog(debugInfor);
+	debugLog("start the jpeg decode and dpm\r\n");
 
 	ScanCount = 1;
 
@@ -503,7 +530,7 @@ void JpegProcess(int picNum)
 	sprintf(debugInfor, "width=%d,heigth=%d\r\n",
 			(status->imgdecStatus.outputWidth),
 			(status->imgdecStatus.outputHeight));
-	write_uart(debugInfor);
+	debugLog(debugInfor);
 
 	if (ScanCount == 0)
 	{

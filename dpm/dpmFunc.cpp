@@ -50,12 +50,14 @@ extern "C"
 #include "ti/platform/platform.h"
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/BIOS.h>
+extern void debugLog(char* msg);
 extern void write_uart(char* msg);
+
 extern Semaphore_Handle gRecvSemaphore;
 
 void dpmInit();
 int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
-		int totalNum,registerTable *pRegisterTable);
+		int totalNum, registerTable *pRegisterTable);
 
 #ifdef __cplusplus
 }
@@ -111,7 +113,7 @@ static int getSubPicture(picInfo_t *pSrcPic);
 
 void dpmInit()
 {
-
+	write_uart("dpm init begin1\n\r");
 	std::string strm0(pMotorParam0);
 	std::string strm1(pMotorParam1);
 	std::string strm2(pMotorParam2);
@@ -126,7 +128,7 @@ void dpmInit()
 	std::string strm11(pMotorParam11);
 	const string modelPathMotor = strm0 + strm1 + strm2 + strm3 + strm4 + strm5
 			+ strm6 + strm7 + strm8 + strm9 + strm10 + strm11;
-
+	//write_uart("dpm init begin2\n\r");
 	std::string strc0(pCarParam0);
 	std::string strc1(pCarParam1);
 	std::string strc2(pCarParam2);
@@ -158,14 +160,17 @@ void dpmInit()
 			+ strp6 + strp7 + strp8 + strp9 + strp10 + strp11;
 
 #endif
+	//write_uart("dpm init begin3\n\r");
 	pMotorModel = new DeformablePartModel(modelPathMotor);
 	pCarModel = new DeformablePartModel(modelPathCar);
 	pPersonModel = new DeformablePartModel(modelPathPerson);
 
+	//write_uart("dpm init begin4\n\r");
 	g_DPM_memory = new MemAllocDPM();
+	write_uart("dpm init finished\n\r");
 }
 int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
-		int totalNum,registerTable *pRegisterTable)
+		int totalNum, registerTable *pRegisterTable)
 {
 
 	long long beg, end;
@@ -194,6 +199,8 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	IplImage * normImage = cvCreateImage(
 			cvSize(origImage->width, origImage->height), origImage->depth,
 			origImage->nChannels);
+	// set for test
+	pRegisterTable->DSP_modelType = 2;
 	// -m params
 	if (pRegisterTable->DSP_modelType == 1)
 	{
@@ -214,7 +221,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	////////////////////////////////////////////////////
 	write_uart("dsp wait for being triggerred to start dpm\r\n");
 
-	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
+	//Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
 	////////////////////////////////////////////////////
 
 	write_uart("after model set");
@@ -255,7 +262,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 		sprintf(debugInfor, "%d,%d,%d,%d\r\n", fastResults[i].rects[0].x,
 				fastResults[i].rects[0].y, fastResults[i].rects[0].width,
 				fastResults[i].rects[0].height);
-		write_uart(debugInfor);
+		debugLog(debugInfor);
 
 		pictureInfo.nHeigth = ((fastResults[i].rects[0].height + 1) / 2) * 2;
 		pictureInfo.nWidth = ((fastResults[i].rects[0].width + 1) / 2) * 2;
@@ -279,18 +286,18 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	//store subPic to shared zone
 	subPicLen = (pictureInfo.nHeigth * pictureInfo.nWidth) * 3;
 	//*************************store original picture*********************************/
-	memcpy(g_pSendBuffer, p_gPictureInfor->picUrls[picNum], 120);
-	g_pSendBuffer = (g_pSendBuffer + 120 / 4);
-
-	memcpy(g_pSendBuffer, p_gPictureInfor->picName[picNum], 40);
-	g_pSendBuffer = (g_pSendBuffer + 40 / 4);
-
-	memcpy(g_pSendBuffer, &(p_gPictureInfor->picLength[picNum]), 4);
-	g_pSendBuffer = (g_pSendBuffer + 4 / 4);
-
-	memcpy(g_pSendBuffer, (p_gPictureInfor->picAddr[picNum] + 4),
-			p_gPictureInfor->picLength[picNum]);
-	g_pSendBuffer = (g_pSendBuffer + (p_gPictureInfor->picLength[picNum] + 4) / 4);
+//	memcpy(g_pSendBuffer, p_gPictureInfor->picUrls[picNum], 120);
+//	g_pSendBuffer = (g_pSendBuffer + 120 / 4);
+//
+//	memcpy(g_pSendBuffer, p_gPictureInfor->picName[picNum], 40);
+//	g_pSendBuffer = (g_pSendBuffer + 40 / 4);
+//
+//	memcpy(g_pSendBuffer, &(p_gPictureInfor->picLength[picNum]), 4);
+//	g_pSendBuffer = (g_pSendBuffer + 4 / 4);
+//
+//	memcpy(g_pSendBuffer, (p_gPictureInfor->picAddr[picNum] + 4),
+//			p_gPictureInfor->picLength[picNum]);
+//	g_pSendBuffer = (g_pSendBuffer + (p_gPictureInfor->picLength[picNum] + 4) / 4);
 
 	//*************************store sub picture*********************************/
 	memcpy(g_pSendBuffer, &pictureInfo.nWidth, sizeof(int));
@@ -311,7 +318,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
 	g_pSendBuffer = (g_pSendBuffer + (subPicLen + 4) / 4);
 
-	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum-1))
+	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum - 1))
 	{ //every loop last and all of the last pic,we need set end flag
 		memcpy(g_pSendBuffer, &endFlag, sizeof(int));
 		g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
@@ -321,17 +328,17 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	free(pictureInfo.pSubData);
 
 	sprintf(debugInfor, "timeDetectFast=%d\r\n", timeDetectFast);
-	write_uart(debugInfor);
+	debugLog(debugInfor);
 
 	//cyx add for second picture dpm process
 	write_uart("the second picture dpm process start semphore\r\n");
-	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum-1))
+	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum - 1))
 	{
 		write_uart("the last picture ,and we did not post semaphore\r\n");
 	}
 	else
 	{
-		Semaphore_post(gRecvSemaphore);
+		//Semaphore_post(gRecvSemaphore);
 	}
 
 	cvReleaseImage(&normImage);

@@ -181,7 +181,7 @@ PicInfor *p_gPictureInfor;
 
 extern volatile cregister unsigned int DNUM;
 
-#define DEBUG_PROCESS 1
+//#define DEBUG_PROCESS
 #ifdef DEBUG_PROCESS
 void write_uart(char* msg)
 {
@@ -194,7 +194,7 @@ void write_uart(char* msg)
 		platform_uart_write(msg[i]);
 	}
 }
-#elif
+#else
 void write_uart(char *msg)
 {
 }
