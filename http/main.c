@@ -319,19 +319,59 @@ int main()
 
 int StackTest()
 {
-	if (DNUM == 1)
+
+	//if (DNUM == 1)
+	unsigned char *pSrc = NULL;
+	switch (DNUM)
+	{
+	case 1:
+	{
+		//todo:
+		pSrc = pCore1InBuf;
+		break;
+	}
+	case 2:
+	{
+		pSrc = pCore2InBuf;
+		break;
+	}
+	case 3:
+	{
+		pSrc = pCore3InBuf;
+		break;
+	}
+	case 4:
+	{
+		pSrc = pCore4InBuf;
+		break;
+	}
+	case 5:
+	{
+		pSrc = pCore5InBuf;
+		break;
+	}
+	case 6:
+	{
+		pSrc = pCore6InBuf;
+		break;
+	}
+	case 7:
+	{
+		pSrc = pCore7InBuf;
+		break;
+	}
+	}
+
 	{
 		int maxCount = 4; //todo: will be adjust.
 		int countIndex = 0;
 		unsigned int picLen = 0;
-		unsigned char *pSrc = NULL;
+
 		p_gPictureInfor = (PicInfor *) malloc(sizeof(PicInfor));
 
 		Semaphore_pend(g_getJpegSrc, BIOS_WAIT_FOREVER);
 
 		write_uart("getINTfromCore0\n\r");
-		pSrc = pCore1InBuf;
-
 		while (countIndex < maxCount)
 		{
 			picLen = *(int *) pSrc;

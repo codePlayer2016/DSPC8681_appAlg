@@ -7,7 +7,7 @@ DSPWORKSPACE=/home/jack/gitDSPC8681
 DSPPRJ=DSPC8681_framework
 
 # DSP outputFile name
-DSP_OUT_FILE=DSPC8681_appAlg
+DSP_OUT_FILE=DSPC8681_appAlgCore1
 SRCOUTFILE=${DSP_OUT_FILE}.out
 
 # Linux project name.
@@ -18,7 +18,7 @@ LINUX_PROJECT_DIR=/home/jack/gitDSPC8681
 
 
 # the output .h file name.
-TARGETFILE=DPUCore_6678.h
+TARGETFILE=DPUCore1_6678.h
 
 # the output .h file filePath.
 TARGETDIR=${LINUX_PROJECT_DIR}/${LINUX_PROJECT_NAME}/inc

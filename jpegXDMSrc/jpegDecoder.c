@@ -55,7 +55,7 @@ typedef struct __tagPicInfor
 extern void write_uart(char* msg);
 
 
-#define DEBUG_PROCESS1
+//#define DEBUG_PROCESS1
 #ifdef DEBUG_PROCESS1
 void debugLog(char* msg)
 {
@@ -69,10 +69,12 @@ void debugLog(char* msg)
 	}
 }
 #else
-void write_uart(char *msg)
+void debugLog(char* msg)
 {
+
 }
 #endif
+
 
 uint32_t *g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 // for uart debug
@@ -128,7 +130,7 @@ JPEGDEC_OutArgs *outArgs = (JPEGDEC_OutArgs*) &jpegdecOutArgs;
 void DPMMain()
 {
 
-	if (DNUM == 1)
+	//if (DNUM == 1)
 	{
 		unsigned int picNum = 0;
 		unsigned int picMax = 4;
