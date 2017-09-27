@@ -1,4 +1,4 @@
-export CGT_INSTALL_DIR=/opt/ti/ccsv5/tools/compiler/c6000_7.4.16
+export CGT_INSTALL_DIR=/opt/ti/ccsv5/tools/compiler/c6000_7.4.4
 export TARGET=6678
 export ENDIAN=little
 

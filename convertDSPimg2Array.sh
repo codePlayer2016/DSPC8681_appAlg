@@ -1,18 +1,21 @@
 #! /bin/bash
 
 # workspace.
-DSPWORKSPACE=/home/hawke/gitDSPC8681
+DSPWORKSPACE=/home/jack/gitDSPC8681
 
 # DSP project name.
 DSPPRJ=DSPC8681_framework
 
+# DSP outputFile name
+DSP_OUT_FILE=DSPC8681_framework
+SRCOUTFILE=${DSP_OUT_FILE}.out
+
 # Linux project name.
-LINUX_PROJECT_NAME=tools4Crc
+LINUX_PROJECT_NAME=Linux_8681Driver
 
 # Linux project filePath.
-LINUX_PROJECT_DIR=/gitToolsForCrc
+LINUX_PROJECT_DIR=/home/jack/gitDSPC8681
 
-CRC_TOOLS_DIR=/gitToolsForCrc/tools4Crc
 
 # the output .h file name.
 TARGETFILE=DPUCore_6678.h
@@ -22,7 +25,7 @@ TARGETDIR=${LINUX_PROJECT_DIR}/${LINUX_PROJECT_NAME}/inc
 echo the output .h file will be put to ${TARGETDIR}
 
 # DSP compile output file name.
-SRCOUTFILE=${DSPPRJ}.out
+SRCOUTFILE=${DSP_OUT_FILE}.out
 
 # DSP compile output file filePath.
 DSPOUTFILE=${DSPWORKSPACE}/${DSPPRJ}/out/${SRCOUTFILE} 
@@ -45,10 +48,6 @@ cp ${DSPOUTFILE} ./
 echo elf2HBin.sh
 ./elf2HBin.sh
 chmod 777 ${TARGETFILE}
-
-chmod -R 777 ${CRC_TOOLS_DIR}
-rm -rf ${CRC_TOOLS_DIR}/inc/DPUCore_6678.h
-rm -rf ${CRC_TOOLS_DIR}/out/*
 
 cp -f ${TARGETFILE} ${TARGETDIR}
 
