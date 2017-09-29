@@ -33,6 +33,8 @@
 #define DEVICE_REG32_W(x,y)   *(volatile uint32_t *)(x)=(y)
 #define DEVICE_REG32_R(x)    (*(volatile uint32_t *)(x))
 
+//extern Semaphore_Handle gRecvSemaphore;
+
 typedef struct __tagPicInfor
 {
 	uint8_t *picAddr[100];
@@ -51,7 +53,7 @@ extern "C"
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/BIOS.h>
 extern void write_uart(char* msg);
-extern Semaphore_Handle gRecvSemaphore;
+//extern Semaphore_Handle gRecvSemaphore;
 
 void dpmInit();
 int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
@@ -209,12 +211,12 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	}
 
 	////////////////////////////////////////////////////
-	write_uart("dsp wait for being triggerred to start dpm\r\n");
+	//write_uart("dsp wait for being triggerred to start dpm\r\n");
 
-	Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
+	//Semaphore_pend(gRecvSemaphore, BIOS_WAIT_FOREVER);
 	////////////////////////////////////////////////////
 
-	write_uart("after model set");
+	//write_uart("after model set");
 
 	CvSize filterSize = model->getMaxSizeOfFilters();
 	HOGPyramid pyramid = HOGPyramid(normImage->width, normImage->height, padx,
@@ -279,8 +281,13 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	memcpy(g_pSendBuffer, p_gPictureInfor->picUrls[picNum], 120);
 	g_pSendBuffer = (g_pSendBuffer + 120 / 4);
 
+	sprintf(debugInfor, "url=%s\r\n", p_gPictureInfor->picUrls[picNum]);
+	write_uart(debugInfor);
+
 	memcpy(g_pSendBuffer, p_gPictureInfor->picName[picNum], 40);
 	g_pSendBuffer = (g_pSendBuffer + 40 / 4);
+	sprintf(debugInfor, "picName=%s\r\n", p_gPictureInfor->picName[picNum]);
+	write_uart(debugInfor);
 
 	memcpy(g_pSendBuffer, &(p_gPictureInfor->picLength[picNum]), 4);
 	g_pSendBuffer = (g_pSendBuffer + 4 / 4);
@@ -307,19 +314,20 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 
 	memcpy(((uint8_t *) (g_pSendBuffer)), pictureInfo.pSubData, subPicLen);
 	g_pSendBuffer = (g_pSendBuffer + (subPicLen + 4) / 4);
-
+#if 0
 	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum-1))
 	{ //every loop last and all of the last pic,we need set end flag
 		memcpy(g_pSendBuffer, &endFlag, sizeof(int));
 		g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
 	}
+#endif
 
 	free(pictureInfo.pSrcData);
 	free(pictureInfo.pSubData);
 
-	sprintf(debugInfor, "timeDetectFast=%d\r\n", timeDetectFast);
+	sprintf(debugInfor, "timeDetectFast=%f ms\r\n", timeDetectFast/1000000.0);
 	write_uart(debugInfor);
-
+#if 0
 	//cyx add for second picture dpm process
 	write_uart("the second picture dpm process start semphore\r\n");
 	if ((picNum % maxNum == maxNum - 1) || (picNum == totalNum-1))
@@ -330,7 +338,7 @@ int dpmProcess(char *rgbBuf, int width, int height, int picNum, int maxNum,
 	{
 		Semaphore_post(gRecvSemaphore);
 	}
-
+#endif
 	cvReleaseImage(&normImage);
 	cvReleaseImage(&origImage);
 	origImage = NULL;

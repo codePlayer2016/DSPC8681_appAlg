@@ -65,6 +65,24 @@
 #define DSP_WT_OVER 	(0x550000aaU)
 #define DSP_WT_BUSY		(0x55555555U)
 
+/********************PC write to DSP.*/
+// DSP-side read buffer status.(pc polling)
+#define DSP_RD_RESET	(0x000055aaU)
+#define DSP_RD_FINISH 	(0x550000aaU)
+// PC-side write buffer status.(pc set)
+#define PC_WT_RESET 	(0x0000aa55U)
+#define PC_WT_FINISH 	(0xaa000055U)
+/*************************************/
+
+/********************DSP write to PC.*/
+// PC-side read buffer status.(pc set)
+#define PC_RD_RESET		(0x000077bbU)
+#define PC_RD_FINISH	(0x770000bbU)
+// DSP-side write buffer status.(pc polling)
+#define DSP_WT_RESET	(0x0000bb77U)
+#define DSP_WT_FINISH	(0xbb000077U)
+/*************************************/
+
 
 //This struct is used to get the information of the url.
 typedef struct  http_downloadInfo

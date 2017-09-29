@@ -194,8 +194,10 @@ static void isrHandler(void* handle)
 {
 	char debugInfor[100];
 	registerTable *pRegisterTable = (registerTable *) C6678_PCIEDATA_BASE;
+	pRegisterTable->writeControl=DSP_WT_RESET;
 	CpIntc_disableHostInt(0, 3);
-
+	write_uart("get int from pc\r\n");
+#if 0
 	sprintf(debugInfor,"pRegisterTable->dpmStartStatus is %x \r\n",
 									pRegisterTable->dpmStartStatus);
 	write_uart(debugInfor);
@@ -224,10 +226,11 @@ static void isrHandler(void* handle)
 		Semaphore_post(g_writeSemaphore);
 	}
 
+#endif
 
-
+	Semaphore_post(gRecvSemaphore);
 	//clear PCIE interrupt
-			DEVICE_REG32_W (PCIE_LEGACY_A_IRQ_STATUS,0x1);
+	DEVICE_REG32_W (PCIE_LEGACY_A_IRQ_STATUS,0x1);
 	DEVICE_REG32_W(PCIE_IRQ_EOI, 0x0);
 	CpIntc_clearSysInt(0, PCIEXpress_Legacy_INTA);
 
@@ -360,7 +363,7 @@ int StackTest()
 	//
 
 	//clear interrupt
-	pRegisterTable->dpmStartControl = DSP_DPM_STARTCLR;
+
 
 	rc = NC_SystemOpen(NC_PRIORITY_LOW, NC_OPMODE_INTERRUPT);
 	if (rc)

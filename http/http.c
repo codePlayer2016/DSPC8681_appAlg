@@ -19,13 +19,14 @@ extern Semaphore_Handle g_writeSemaphore;
 extern Semaphore_Handle httptodpmSemaphore;
 
 extern Semaphore_Handle gSendSemaphore;
+extern Semaphore_Handle gRecvSemaphore;
 
 //extern unsigned char g_inBuffer[0x001000000];			//url value.
 //extern unsigned char g_outBuffer[0x00600000]; //27M
 //#pragma DATA_SECTION(g_outBuffer,".WtSpace");
 unsigned char g_outBuffer[0x00e00000]; //4M-->max size=500M
 //unsigned char *g_outBuffer=NULL; //27M
-
+#define DSP_DPM_STARTCLR  (0x0505aa00U)
 PicInfor *p_gPictureInfor;
 
 int g_DownloadFlags = 1;
@@ -162,7 +163,7 @@ int http_get()
 	pRegisterTable->DPUBootControl |= DSP_RUN_READY;
 	// DSP can be written by PC.
 	//this code should be put in while(1)
-	pRegisterTable->readControl = DSP_RD_INIT;
+	//pRegisterTable->readControl = DSP_RD_INIT;
 	fdOpenSession(TaskSelf());
 	struct sockaddr_in socket_address;
 	write_uart("http_get\n\r");
@@ -195,26 +196,28 @@ int http_get()
 
 	//dsp init ready and can read urls.
 	//*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
-	write_uart("cyx send interrupt from dsp to pc INT singal\r\n");
-
+	//write_uart("cyx send interrupt from dsp to pc INT singal\r\n");
+	pRegisterTable->dpmStartControl = DSP_DPM_STARTCLR;
+	write_uart("dpm is ready\r\n");
 	while (1 == g_DownloadFlags)
 	{
 		//5.13
-		pRegisterTable->dpmOverControl = 0x00000000;
+		//pRegisterTable->dpmOverControl = 0x00000000;
 		// polling PC to write the url.
-		retVal = pollValue(&(pRegisterTable->readStatus), DSP_RD_READY,
-				0x07ffffff);
+		//retVal = pollValue(&(pRegisterTable->readStatus), DSP_RD_READY,0x07ffffff);
+		write_uart("wait int from PC\r\n");
+		Semaphore_pend(gRecvSemaphore,BIOS_WAIT_FOREVER);
+		write_uart("get int from PC\r\n");
 		if (retVal == 0)
 		{
 			urlItemNum = DEVICE_REG32_R(&(pRegisterTable->DSP_urlNumsReg));
-			sprintf(debugBuf, "urlItemNum=%d\r\n",
-					pRegisterTable->DSP_urlNumsReg);
+			sprintf(debugBuf, "urlItemNum=%d\r\n",pRegisterTable->DSP_urlNumsReg);
 			write_uart(debugBuf);
+
 			pUrlAddr = g_pReceiveBuffer;
 			pPicDestAddr = pOutbuffer;
 			// polling the PC can be written to.
-			retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_INIT,
-					0x07ffffff);
+			//retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_INIT,0x07ffffff);
 
 		}
 		else
@@ -234,8 +237,7 @@ int http_get()
 			pUrlAddr = g_pReceiveBuffer;
 			pPicDestAddr = pOutbuffer;
 			// polling the PC can be written to.
-			retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_INIT,
-					0x07ffffff);
+			//retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_INIT,0x07ffffff);
 		}
 
 		// polling PC can be writed to.
@@ -680,18 +682,17 @@ int http_get()
 					downLoadPicNum, downloadFail);
 			write_uart(debugBuf);
 			// dsp write to pc over. Note: PC polling this for reading pc's inBuffer or not.
-			pRegisterTable->writeControl = DSP_WT_OVER;
+			//pRegisterTable->writeControl = DSP_WT_OVER;
 
 			// polling for the PC read over or not.
-			retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_READY,
-					0x07ffffff);
+			//retVal = pollValue(&(pRegisterTable->writeStatus), DSP_WT_READY,0x07ffffff);
 			if (retVal == 0)
 			{
 
 			}
 			else
 			{
-				Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
+				//Semaphore_pend(g_writeSemaphore, BIOS_WAIT_FOREVER);
 				//retVal = -1;
 				write_uart("wait the pc read.time over\n\r");
 			}
@@ -701,27 +702,27 @@ int http_get()
 				p_gPictureInfor->picNums);
 		write_uart(debugBuf);
 		//p_gPictureInfor->picNums = 0;
-		pRegisterTable->getPicNumers = 0;
-		pRegisterTable->failPicNumers = 0;
+		//pRegisterTable->getPicNumers = 0;
+		//pRegisterTable->failPicNumers = 0;
 		downLoadPicNum = 0;
 		downloadFail = 0;
 		// set the dsp can be write again. NOte PC polling this for writting urls to DSP.
-		pRegisterTable->readControl = DSP_RD_OVER; // pc can write to.
+		//pRegisterTable->readControl = DSP_RD_OVER; // pc can write to.
 		// after the PC read,reset this. Note: PC polling this for reading pc's inBuffer
-		pRegisterTable->writeControl = DSP_WT_READY; // pc can't read.
+		//pRegisterTable->writeControl = DSP_WT_READY; // pc can't read.
 		//send interrupt
 
 		// http download picture over.
-		*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
-		write_uart("send the second interrupt from dsp to pc INT singal\n\r");
-		write_uart("wait PC input\r\n");
+		//*((uint32_t *) (PCIE_EP_IRQ_SET)) = 0x1;
+		//write_uart("send the second interrupt from dsp to pc INT singal\n\r");
+		//write_uart("wait PC input\r\n");
 
 		Semaphore_post(httptodpmSemaphore);
 		write_uart("post the httptodpmSemaphore,and DPMMain can run\r\n");
 
 		//stop program to wait dpmmain
-		Semaphore_pend(gSendSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("pend the gSendSemaphore success\r\n");
+		//Semaphore_pend(gSendSemaphore, BIOS_WAIT_FOREVER);
+		//write_uart("pend the gSendSemaphore success\r\n");
 
 	}
 

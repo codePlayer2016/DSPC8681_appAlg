@@ -46,6 +46,16 @@ void write_uart(char* msg)
 }
 #endif
 
+
+/********************DSP write to PC.*/
+// PC-side read buffer status.(pc set)
+#define PC_RD_RESET		(0x000077bbU)
+#define PC_RD_FINISH	(0x770000bbU)
+// DSP-side write buffer status.(pc polling)
+#define DSP_WT_RESET	(0x0000bb77U)
+#define DSP_WT_FINISH	(0xbb000077U)
+/*************************************/
+
 typedef struct __tagPicInfor
 {
 	uint8_t *picAddr[100];
@@ -438,21 +448,25 @@ void DPMMain()
 	/* Init DPM Algrithm */
 	dpmInit();
 
-	Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
-	sprintf(debugInfor,
-			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
-			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
-			pRegisterTable->dpmOverStatus);
-	write_uart(debugInfor);
-	count = picNum % URLNUM;
+	pRegisterTable->pollSyncSignalControl=0x83;
+	//Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+//	sprintf(debugInfor,
+//			"p_gPictureInfor->picNums is %d DSP_DPM_OVERSTATUS is %x pRegisterTable->dpmOverStatus is %x \r\n",
+//			p_gPictureInfor->picNums, DSP_DPM_OVERSTATUS,
+//			pRegisterTable->dpmOverStatus);
+//	write_uart(debugInfor);
+//	count = picNum % URLNUM;
 
 	while (1)
 	{
-		write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
-		Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
-		write_uart("dsp pend pcFinishReadSemaphore over\r\n");
-
-		while (count < URLNUM && picNum < p_gPictureInfor->picNums)
+		//write_uart("222222222222before pend pcFinishReadSemaphore\r\n");
+		//Semaphore_pend(pcFinishReadSemaphore, BIOS_WAIT_FOREVER);
+		//write_uart("dsp pend pcFinishReadSemaphore over\r\n");
+		write_uart("dpm:wait semaphore for http download\r\n");
+		g_pSendBuffer = (uint32_t *) (C6678_PCIEDATA_BASE + 4 * 4 * 1024);
+		Semaphore_pend(httptodpmSemaphore, BIOS_WAIT_FOREVER);
+		write_uart("dpm:get semaphore for http download\r\n");
+		//while (count < URLNUM && picNum < p_gPictureInfor->picNums)
 		{
 			/* jpeg Decode to process one picture */
 			JpegProcess(picNum);
@@ -465,10 +479,19 @@ void DPMMain()
 						p_gPictureInfor->picNums, pRegisterTable);
 
 			}
-			picNum++;
-			count++;
+			//picNum++;
+			//count++;
 		}
 		JpegDeInit();
+
+		//todo ctl_writeStatus=ready.
+		pRegisterTable->writeControl=DSP_WT_FINISH;
+		pRegisterTable->pollSyncSignalControl+=1;
+		DEVICE_REG32_W(PCIE_EP_IRQ_SET, 0x1);
+		write_uart("triggle interrupt to PC\r\n");
+
+
+#if 0
 		count = 0;
 		//all picture dpm over
 		if (picNum >= p_gPictureInfor->picNums)
@@ -497,6 +520,7 @@ void DPMMain()
 			//Semaphore_post(gSendSemaphore);
 			//write_uart("post gSendSemaphore,make http loop can continue\r\n");
 		}
+#endif
 
 	}
 } /* main() */

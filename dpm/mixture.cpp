@@ -133,8 +133,8 @@ std::istream & zftdt::operator>>(std::istream & is, Mixture & mixture)
 	// add by LHS.
 	//printf("nbModels=%d,is>>mixture.models[] while loop for %d\n",nbModels,nbModels);
 	//std::cout<<"nbModels="<<nbModels<<" mixture.models[] while loop for"<<nbModels<<std::endl;
-	sprintf(debugInfor,"nbModels=%d\r\n",nbModels);
-	write_uart(debugInfor);
+	//sprintf(debugInfor,"nbModels=%d\r\n",nbModels);
+	//write_uart(debugInfor);
 
 	for (int i = 0; i < nbModels; ++i)
 	{
@@ -154,8 +154,8 @@ std::istream & zftdt::operator>>(std::istream & is, Mixture & mixture)
 			write_uart("is is error\r\n");
 		}
 		//std::cout<<"parts.size="<<mixture.models[i].parts.size<<std::endl;
-		sprintf(debugInfor,"parts.size=%d\r\n",mixture.models[i].parts.size);
-		write_uart(debugInfor);
+		//sprintf(debugInfor,"parts.size=%d\r\n",mixture.models[i].parts.size);
+		//write_uart(debugInfor);
 
 		if (!is || mixture.models[i].parts.size == 0)
 		{

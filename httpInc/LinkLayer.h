@@ -46,7 +46,8 @@ typedef struct _tagRegisterTable
 	uint32_t dpmOverControl;
 	uint32_t dpmStartControl;
 	uint32_t dpmAllOverControl;
-	uint32_t reserved0[0x1000 / 4 - 8];
+	volatile uint32_t pollSyncSignalControl;
+	uint32_t reserved0[0x1000 / 4 - 9];
 
 	// status registers. (4k)
 	uint32_t DPUBootStatus;
